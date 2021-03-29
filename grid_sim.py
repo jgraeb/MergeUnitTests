@@ -1,6 +1,7 @@
 from collections import namedtuple
 from random import choice
 from mcts import MCTS, Node
+import numpy as np
 
 class GridWorld:
   def __init__(self,lanes,width, initial_scene):
@@ -78,14 +79,14 @@ class GridWorld:
       self.terminal = False
 
   def print_state(self):
-    agents = self.ego_agents | self.env_agents 
+    agents = {**self.ego_agents, **self.env_agents}
     for i in range(0,self.lanes):
-      for k in range(0,self.steps):
-        for key in self.agents:
+      for k in range(0,self.width):
+        for key in agents:
           if agents[key].x == k and agents[key].y == i:
-            print('|'+str(agents[key].name[0])) # plot first letter of car name (i.e. 'e' or 'a')
+            print('|'+str(agents[key].name[0]),end='') # plot first letter of car name (i.e. 'e' or 'a')
           else:
-            print('| ') # no car in this cell
+            print('| ',end='') # no car in this cell
       print('|')
       print('\n')
     pass
@@ -107,12 +108,23 @@ class GridWorld:
 def new_init_scene():
   Init_agent = namedtuple("Init_agent", ["name", "x", "y", "v", "goal"])
   ego_tuple = Init_agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
-  tester_tuple = Init_agent(name ="env", x = 1, y = 2, v=1, goal = 2)
+  tester_tuple = Init_agent(name ="ag_env", x = 1, y = 2, v=1, goal = 2)
   return (ego_tuple, tester_tuple)
 
 def new_World():
   init_scene = new_init_scene()
   return GridWorld(2, 10, init_scene)
+
+def debug_sim():
+  # play a game
+  gridworld = new_World()
+  gridworld.setup_world()
+  for i in range(0,10):
+    print('Step {}'.format(i))
+    gridworld.ego_take_step()
+    for agent in gridworld.env_agents:
+      gridworld.env_take_step(agent,np.random.choice(1,2,3))
+    gridworld.print_state()
 
 # Playing a game:
 def play_game(gridworld):
