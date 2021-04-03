@@ -62,6 +62,7 @@ class GridWorld:
                     agent.x = x
                     agent.y = y
                     #self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
+            print('ego took step to {0},{1}'.format(agent.x,agent.y))
         self.print_state()
 
     def enabled_actions(self,agent):
@@ -98,6 +99,7 @@ class GridWorld:
             agent.y = y
             #self.env_agents.update({agent.name: Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)})
             #else: # the action is 'stay'
+        print('env took step to {0},{1}'.format(agent.x,agent.y))
         self.print_state()
 
   # def reward(self):
@@ -135,6 +137,7 @@ class GridWorld:
             pickle.dump(self.trace, pckl_file)
 
     def save_scene(self):
+        print('Saving scene {}'.format(self.timestep))
         ego_snapshot = []
         env_snapshot = []
         for agent in self.ego_agents:
@@ -143,6 +146,7 @@ class GridWorld:
             env_snapshot.append((agent.name,agent.x,agent.y))
         current_scene = Scene(self.timestep, self.map, ego_snapshot, env_snapshot)
         self.trace.append(current_scene)
+        self.timestep += 1
 
   # # Passing current state of gridworld to Rose simulator:
   # # ToDo: Update this function
@@ -177,16 +181,18 @@ def run_random_sim(maxstep):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
-    #filepath = output_dir + filename
+    filepath = output_dir + filename
     gridworld = new_World()
     gridworld.setup_world()
+    gridworld.save_scene()
     acts = ['mergeL','stay','move', 'mergeR']
     for i in range(0,maxstep):
-        gridworld.timestep = i
+        #gridworld.timestep = i
         print('Step {}'.format(i))
         # environment takes step
         for agent in gridworld.env_agents:
             gridworld.env_take_step(agent,np.random.choice(acts))
+        gridworld.save_scene()
         # ego takes step
         gridworld.ego_take_step()
         # save the scene
@@ -196,7 +202,9 @@ def run_random_sim(maxstep):
             if gridworld.check_terminal(agent):
                 print('Goal reached')
                 # save the trace
-                gridworld.save_trace(output_dir + filename)
+                print(gridworld.trace)
+                #import pdb; pdb.set_trace()
+                gridworld.save_trace(filepath)
                 return
     self.save_trace(filepath)
 
