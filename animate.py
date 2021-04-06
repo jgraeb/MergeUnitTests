@@ -90,14 +90,16 @@ def traces_to_animation(filename, output_dir):
     with open(filename, 'rb') as pckl_file:
         traces = pickle.load(pckl_file)
     ##
-    t_start = traces[0].timestamp
-    t_end = traces[-1].timestamp
+    t_start = 0
+    t_end = len(traces)
+    # t_start = traces[0].timestamp
+    # t_end = traces[-1].timestamp
     map = traces[0].map
-
+    #import pdb; pdb.set_trace()
     global ax
     fig, ax = plt.subplots()
 
-    t_array = np.arange(t_end+1)
+    t_array = np.arange(t_end)
     # plot map once
     for t in t_array:
         print(t)
