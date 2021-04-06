@@ -230,7 +230,7 @@ class GridWorld:
 def save_trace(filename,trace):
     print('Saving trace in pkl file')
     import pdb; pdb.set_trace()
-    with open(filename, 'wb+') as pckl_file:
+    with open(filename, 'wb') as pckl_file:
         pickle.dump(trace, pckl_file)
 
 def save_scene(gridworld,trace):
