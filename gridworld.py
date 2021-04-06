@@ -103,8 +103,8 @@ class GridWorld:
                 agent.x = x
                 agent.y = y
                 #self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-            elif 'mergeR' in enabled_actions.keys():
-                ran_act = choice(['mergeR', 'stay'])
+            elif 'move' in enabled_actions.keys():
+                ran_act = choice(['move', 'stay'])
                 x,y = enabled_actions[ran_act]
                 agent.x = x
                 agent.y = y
@@ -178,25 +178,14 @@ class GridWorld:
             x,y = enabled_actions[action]
             agent.x = x
             agent.y = y
-            #self.env_agents.update({agent.name: Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)})
         else:
             x,y = enabled_actions['stay']
             agent.x = x
             agent.y = y
-            #self.env_agents.update({agent.name: Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)})
-            #else: # the action is 'stay'
-        print('env took step to {0},{1}'.format(agent.x,agent.y))
-        #self.print_state()
 
-  # def reward(self):
-  #   if not self.terminal:
-  #     raise RuntimeError("reward called on nonterminal gridworld")
-  #   else:
-  #     return self.ego_agents["ego"].x
 
     def is_terminal(self):
         for agent in self.ego_agents:
-        # agent = self.ego_agents["ego"]
             if agent.y == agent.goal or agent.x == self.width:
                 self.terminal = True
             else:
@@ -215,7 +204,6 @@ class GridWorld:
         for i in range(1,self.lanes+1):
             lanestr = []
             for k in range(1,self.width+1):
-                #print('i,k = {0},{1}'.format(i,k))
                 occupied = False
                 for agent in agents:
                     if agent.x == k and agent.y == i:
@@ -229,12 +217,12 @@ class GridWorld:
 
 def save_trace(filename,trace):
     print('Saving trace in pkl file')
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     with open(filename, 'wb') as pckl_file:
         pickle.dump(trace, pckl_file)
 
 def save_scene(gridworld,trace):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     print('Saving scene {}'.format(gridworld.timestep))
     ego_snapshot = []
     env_snapshot = []
@@ -250,10 +238,6 @@ def save_scene(gridworld,trace):
 def new_init_scene():
     ego_tuple = Agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
     tester_tuple = Agent(name ="ag_env", x = 1, y = 2, v=1, goal = 2)
-
-    # Init_agent = namedtuple("Init_agent", ["name", "x", "y", "v", "goal"])
-    # ego_tuple = Init_agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
-    # tester_tuple = Init_agent(name ="ag_env", x = 1, y = 2, v=1, goal = 2)
     return (ego_tuple, tester_tuple)
 
 def new_World():
@@ -325,17 +309,19 @@ def play_game():
     k = 0 #  Time stamp
     # Initial step by environment:
     for agent in gridworld.env_agents:
-        gridworld.env_take_step(agent,np.random.choice(acts))
+        gridworld.env_take_step(agent,'move')
     for agent in gridworld.env_agents:
         append_trace(env_trace, agent)
         trace = save_scene(gridworld,trace) # save first env action
     gridworld.print_state()
     while True:
-        gridworld.ego_take_input('move')  # Ego action
+        gridworld.ego_take_input('mergeR')  # Ego action
         for agent in gridworld.ego_agents:
             append_trace(ego_trace, agent)
         game_trace.append(deepcopy(gridworld))
         grid_term = gridworld.is_terminal()
+        trace = save_scene(gridworld,trace)
+        gridworld.print_state()
         if grid_term:
             if k==0:
                 print("Poor initial choices; no MCTS rollouts yet")
@@ -347,10 +333,24 @@ def play_game():
             break
         else:
             k = k+1
+        gridworldnew = deepcopy(gridworld)
         for k in range(50):
             #print("Rollout: ", str(k+1))
-            tree.do_rollout(gridworld)
-        gridworld = tree.choose(gridworld) # Env action
+            tree.do_rollout(gridworldnew)
+        gridworldnew = tree.choose(gridworldnew) # Env action
+        #import pdb; pdb.set_trace()
+        newx = gridworldnew.env_agents[0].x
+        oldx = gridworld.env_agents[0].x
+        newy = gridworldnew.env_agents[0].y
+        oldy = gridworld.env_agents[0].y
+        if newx == oldx:
+            action = 'stay'
+        elif newy != oldy:
+            action = 'mergeR'
+        else:
+            action = 'move'
+        for agent in gridworld.env_agents:
+            gridworld.env_take_step(agent,action)
         for agent in gridworld.env_agents:
             append_trace(env_trace, agent)
         trace = save_scene(gridworld,trace)
@@ -364,19 +364,6 @@ def append_trace(trace_dict, agent):
     trace_dict["x"].append(agent.x)
     trace_dict["y"].append(agent.y)
     trace_dict["v"].append(agent.v)
-# # Playing a game:
-# def play_game(gridworld):
-#   tree = MCTS()
-#   print(gridworld.print_state())
-#   while True:
-#     gridworld.ego_take_step()
-#     gridworld.reached_goal(gridworld.ego_agents["ego"])
-#     if gridworld.terminal:
-#         break
-#
-#     for _ in range(50):
-#         tree.do_rollout(gridworld)
-#     gridworld = tree.choose(gridworld)
 
 if __name__ == '__main__':
     #run_random_sim(10)
