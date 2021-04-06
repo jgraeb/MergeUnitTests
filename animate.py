@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import os
 import glob
-#from rose import Car, Map, CAR_COLORS
 from PIL import Image
 import _pickle as pickle
 from matplotlib.ticker import (AutoMinorLocator, MultipleLocator,
