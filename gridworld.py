@@ -247,20 +247,6 @@ def save_scene(gridworld,trace):
     gridworld.timestep += 1
     return trace
 
-  # # Passing current state of gridworld to Rose simulator:
-  # # ToDo: Update this function
-  # def to_sim_frame(self):
-  #   # to_char = lambda v: ("X" if v is True else ("O" if v is False else " "))
-  #   # rows = [
-  #   #     [to_char(board.tup[3 * row + col]) for col in range(3)] for row in range(3)
-  #   # ]
-  #   # return (
-  #   #     "\n  1 2 3\n"
-  #   #     + "\n".join(str(i + 1) + " " + " ".join(row) for i, row in enumerate(rows))
-  #   #     + "\n"
-  #   # )
-  #   pass
-
 def new_init_scene():
     ego_tuple = Agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
     tester_tuple = Agent(name ="ag_env", x = 1, y = 2, v=1, goal = 2)
@@ -373,6 +359,12 @@ def play_game():
     save_trace(filepath,trace)
     return ego_trace, env_trace, game_trace
 
+
+# Constructing trace:
+def append_trace(trace_dict, agent):
+    trace_dict["x"].append(agent.x)
+    trace_dict["y"].append(agent.y)
+    trace_dict["v"].append(agent.v)
 # # Playing a game:
 # def play_game(gridworld):
 #   tree = MCTS()
