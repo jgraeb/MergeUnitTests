@@ -234,6 +234,14 @@ def save_scene(gridworld,trace):
     trace.append(current_scene)
     gridworld.timestep += 1
     return trace
+#
+# def sanity_chk_ego_same(grid_new, gridworld):
+#     newx = gridworldnew.env_agents[0].x
+#     oldx = gridworld.env_agents[0].x
+#     newy = gridworldnew.env_agents[0].y
+#     oldy = gridworld.env_agents[0].y
+#     assert(oldx == newx)
+#     assert(newy == oldy)
 
 def new_init_scene():
     ego_tuple = Agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
@@ -339,6 +347,7 @@ def play_game():
             tree.do_rollout(gridworldnew)
         gridworldnew = tree.choose(gridworldnew) # Env action
         #import pdb; pdb.set_trace()
+        # sanity_chk_ego_same(grid_new, gridworld)
         newx = gridworldnew.env_agents[0].x
         oldx = gridworld.env_agents[0].x
         newy = gridworldnew.env_agents[0].y

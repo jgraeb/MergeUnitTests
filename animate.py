@@ -48,6 +48,11 @@ def draw_map(map):
 
     plt.gca().invert_yaxis()
 
+def draw_timestamp(t):
+    ax.text(0.5,0.7,t, transform=plt.gcf().transFigure,fontsize='large',
+         bbox={"boxstyle" : "circle", "color":"white", "ec":"black"})
+    pass
+
 def draw_car(car_data):
     if car_data[0]=='ego':
         color = 'red'
@@ -109,6 +114,7 @@ def traces_to_animation(filename, output_dir):
         env_agents = traces[t].env
         plot_ego_cars(ego_agents)
         plot_env_cars(env_agents)
+        draw_timestamp(t)
         plot_name = str(t).zfill(5)
         img_name = output_dir+'/plot_'+plot_name+'.png'
         fig.savefig(img_name)

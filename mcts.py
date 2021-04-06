@@ -11,7 +11,7 @@ import math
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
-    def __init__(self, exploration_weight=1):
+    def __init__(self, exploration_weight=2):
         self.Q = defaultdict(int)  # total reward of each node
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
@@ -76,7 +76,7 @@ class MCTS:
                 return self.max_cells - reward if invert_reward else reward
             node = node.find_random_child()
             invert_reward = not invert_reward
-            invert_reward = False
+            #invert_reward = False
 
     def _backpropagate(self, path, reward):
         "Send the reward back up to the ancestors of the leaf"
