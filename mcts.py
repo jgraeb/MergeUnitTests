@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import math
 
-
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
@@ -17,7 +16,7 @@ class MCTS:
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
         self.exploration_weight = exploration_weight
-
+        self.max_cells = 10
     def choose(self, node):
         "Choose the best successor of node. (Choose a move in the game)"
         if node.is_terminal():
@@ -38,6 +37,7 @@ class MCTS:
         path = self._select(node)
         leaf = path[-1]
         self._expand(leaf)
+        print(" -------- Begin simulate -----------")
         reward = self._simulate(leaf)
         self._backpropagate(path, reward)
 
@@ -58,26 +58,32 @@ class MCTS:
 
     def _expand(self, node):
         "Update the `children` dict with the children of `node`"
+        print("-------- Begin expand ------")
         if node in self.children:
             return  # already expanded
         self.children[node] = node.find_children()
+        print("-------- End expand --------")
 
     def _simulate(self, node):
         "Returns the reward for a random simulation (to completion) of `node`"
         invert_reward = True
         while True:
             if node.is_terminal():
+                print("---------- End Simulate ---------")
+                print("Terminal state in simulate: ")
+                print(node.print_state())
                 reward = node.reward()
-                return 1 - reward if invert_reward else reward
+                return self.max_cells - reward if invert_reward else reward
             node = node.find_random_child()
             invert_reward = not invert_reward
+            invert_reward = False
 
     def _backpropagate(self, path, reward):
         "Send the reward back up to the ancestors of the leaf"
         for node in reversed(path):
             self.N[node] += 1
             self.Q[node] += reward
-            reward = 1 - reward  # 1 for me is 0 for my enemy, and vice versa
+            reward = self.max_cells - reward  # 1 for me is 0 for my enemy, and vice versa
 
     def _uct_select(self, node):
         "Select a child of node, balancing exploration & exploitation"
@@ -102,7 +108,6 @@ class Node(ABC):
     MCTS works by constructing a tree of these Nodes.
     Could be e.g. a chess or checkers board state.
     """
-
     @abstractmethod
     def find_children(self):
         "All possible successors of this board state"
@@ -132,3 +137,4 @@ class Node(ABC):
     def __eq__(node1, node2):
         "Nodes must be comparable"
         return True
+
