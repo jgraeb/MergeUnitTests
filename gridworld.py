@@ -1,13 +1,12 @@
 #############################################################################
 #                                                                           #
-# Basic class for grid world traffic simulation, separate from MCTS for now #
+# Basic class for grid world traffic simulation                             #
 # Josefine Graebener, Apurva Badithela                                      #
 # Caltech, March 2021                                                       #
 #                                                                           #
 #############################################################################
-from collections import namedtuple
 from random import choice
-from mcts import MCTS, Node
+# from mcts import MCTS, Node
 import numpy as np
 from scene import Scene
 from agent import Agent
@@ -15,9 +14,8 @@ from map import Map
 import _pickle as pickle
 import os
 from copy import deepcopy
+from ipdb import set_trace as st
 
-# global
-# Agent = namedtuple('AgentTuple', 'name x y v goal') # change everything to use Agent class instaed
 
 class GridWorld:
     def __init__(self,lanes,width, initial_scene, ego_agents=None, env_agents=None, turn=None):
@@ -25,15 +23,16 @@ class GridWorld:
         self.width = width    # number of gridcells in a lane
         self.initial_scene = initial_scene # dictionary of initial agent conditions
         if ego_agents is not None:
-            self.ego_agents = ego_agents # empty dictionary of ego agents in system
+            self.ego_agents = ego_agents #
         else:
-            self.ego_agents = []
+            self.ego_agents = [] # empty list of ego agents in system
 
         if env_agents is not None:
-            self.env_agents = env_agents # empty dictionary of env agents in system
+            self.env_agents = env_agents
         else:
-            self.env_agents = []
-        self.actions = {'move': (1,0), 'stay': (0,0), 'mergeR': (1,1), 'mergeL': (1,-1)} # possible actions
+            self.env_agents = [] # empty list of env agents in system
+        self.actions = {'move': (1,0), 'stay': (0,0), 'mergeR': (1,1), 'mergeL': (1,-1)} # possible actions for ego
+        self.env_actions = {'move': (1,0), 'stay': (0,0)} # possible actions for each tester
         self.trace = []
         self.map = Map(lanes,width)
         self.timestep = 0
@@ -44,24 +43,243 @@ class GridWorld:
             self.turn = "env"
         self.terminal = False # This is when ego finally merges to cell 2; should be set to the ego agent tuple once merge is complete
 
-   # Children are the successors of the env_agent actions
+    '''-----Basic gridworld functions-----'''
+
+    def setup_world(self):
+        '''Initializing the gridworld'''
+        for i,agent in enumerate(self.initial_scene):
+            if agent.name[0:3] =='ego':
+                self.ego_agents.append(agent)
+            else:
+                self.env_agents.append(agent)
+        self.print_state()
+
+    def take_next_step(self,agent,action,agent_list):
+        '''Given a list of agent positions, update the chosen agent position after the step'''
+        # find agent in agentlist
+        i = agent_list.index(agent)
+        # make this move
+        agentpos = (agent[1],agent[2])
+        enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
+        agent_list[i][1] = enabled_actions[action][0]
+        agent_list[i][2] = enabled_actions[action][1]
+        return agent_list
+
+    def get_actions(self,agent,agent_list):
+        '''get all possible actions for an agent from its position'''
+        agentpos = (agent[1],agent[2])
+        enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
+        return enabled_actions
+
+    def ego_take_input(self, action):
+        '''Ego agent takes the step'''
+        for agent in self.ego_agents:
+            enabled_actions = self.enabled_actions(agent)
+            if action in enabled_actions.keys():
+                x,y = enabled_actions[action]
+                agent.x = x
+                agent.y = y
+            elif 'move' in enabled_actions.keys():
+                ran_act = choice(['move', 'stay'])
+                x,y = enabled_actions[ran_act]
+                agent.x = x
+                agent.y = y
+            else:
+                x,y = enabled_actions['stay']
+                agent.x = x
+                agent.y = y
+
+    def enabled_actions_from_loc(self,agentpos,agent_list):
+        '''Find the possible actions for an agent from its position'''
+        x = agentpos[0]
+        y = agentpos[1]
+        enabled_actions = dict()
+        for action in self.env_actions.keys():
+            move_x,move_y = self.env_actions[action]
+            act_x = x + move_x
+            act_y = y + move_y
+            if self.is_cell_free((act_x,act_y),agent_list) and act_y in range(1,3):
+                enabled_actions.update({action: (act_x,act_y)})
+            enabled_actions.update({'stay': (x,y)})
+        return enabled_actions
+
+    def enabled_actions(self,agent):
+        '''Find possible actions for agent'''
+        enabled_actions = dict()
+        x = agent.x
+        y = agent.y
+        for action in self.actions.keys():
+            move_x,move_y = self.actions[action]
+            act_x = x+move_x
+            act_y = y+move_y
+            if self.is_cell_free((act_x,act_y)) and act_y in range(1,3):
+                enabled_actions.update({action: (act_x,act_y)})
+            enabled_actions.update({'stay': (x,y)}) # stay is always included
+        return enabled_actions
+
+
+    def is_cell_free(self, cellxy, agent_list = None):
+        '''check if the cell is free'''
+        x,y = cellxy
+        if not agent_list:
+            agents = self.ego_agents + self.env_agents
+            for agent in agents:
+                if agent.x == x and agent.y == y:
+                    return False
+        else:
+            for pos in agent_list: # check all env agents
+                if pos[1] == x and pos[2] == y:
+                    return False
+            for agent in self.ego_agents:
+                if agent.x == x and agent.y == y:
+                    return False
+        return True
+
+    def agent_take_step(self,agent,action):
+        '''For known action, take the step (used for find children in tree search)'''
+        enabled_actions = self.enabled_actions(agent)
+        x,y = enabled_actions[action]
+        agent.x = x
+        agent.y = y
+
+    def env_take_step(self, agent, action):
+        '''Take the step for env, used for actually taking the actions during execution'''
+        enabled_actions = self.enabled_actions(agent)
+        if action in enabled_actions:
+            x,y = enabled_actions[action]
+            agent.x = x
+            agent.y = y
+        else:
+            x,y = enabled_actions['stay']
+            agent.x = x
+            agent.y = y
+
+    def is_terminal(self):
+        '''Returns if the state is terminal'''
+        for agent in self.ego_agents:
+            if agent.y == agent.goal or agent.x == self.width:
+                self.terminal = True
+            else:
+                self.terminal = False
+        return self.terminal
+
+    def check_terminal(self, agent):
+        '''Returns if the state is terminal'''
+        if agent.y == agent.goal:
+            self.terminal = True
+        else:
+            self.terminal = False
+        return self.terminal
+
+    def print_state(self):
+        '''Print the current state of all agents in the terminal'''
+        agents = self.ego_agents + self.env_agents
+        for i in range(1,self.lanes+1):
+            lanestr = []
+            for k in range(1,self.width+1):
+                occupied = False
+                for agent in agents:
+                    if agent.x == k and agent.y == i:
+                        lanestr.append('|'+str(agent.name[0]))
+                        occupied = True
+                if not occupied:
+                    lanestr.append('| ') # no car in this cell
+            lanestr.append('| ')
+            print(''.join(lanestr))
+        print('\n')
+
+    ''' MCTS functions '''
+
+    def get_children_gridworlds(self):
+        # st()
+        '''Find all children nodes from the current node for env action next'''
+        # prep the agent data
+        ego_pos = (self.ego_agents[0].x, self.ego_agents[0].y)
+        agent_list_original = [[agent.name, agent.x, agent.y, agent.v, agent.goal] for agent in self.env_agents]
+        agent_list_original = sorted(agent_list_original, key = lambda item: item[1]) # sorted by x location
+        agent_list_original.reverse()
+        list_of_agentlists = [agent_list_original]
+        for i in range(0,len(agent_list_original)):
+            list_of_agentlists_mod = []
+            for agent_list in list_of_agentlists:
+                agent = agent_list[i]
+                actions = self.get_actions(agent,agent_list)
+                for action in actions:
+                    agent_list_copy = deepcopy(agent_list)
+                    agent_list_copy = self.take_next_step(agent,action,agent_list_copy)
+                    list_of_agentlists_mod.append(agent_list_copy)
+                list_of_agentlists = list_of_agentlists_mod
+        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
+        return list_of_gridworlds
+
+    def find_random_child(self):
+        '''Pick a random child node'''
+        if self.terminal:
+            return None
+        children = self.find_children()
+        ran_child = choice(list(children))
+        return ran_child
+
+    def spec_check(self):
+        '''Check if test spec is satisfied'''
+        tester_list = []
+        ego_list = []
+        for tester in self.env_agents:
+            tester_list.append((tester.x,tester.y))
+        for ego in self.ego_agents:
+            ego_list.append((ego.x,ego.y))
+        for ego in ego_list:
+            if (ego[0]-1,ego[1]) in tester_list and (ego[0]+1,ego[1]) in tester_list:
+                return True
+        return False
+
+    def reward(self):
+        '''Get reward for run'''
+        if not self.terminal:
+            raise RuntimeError("reward called on nonterminal gridworld")
+        else:
+            if self.spec_check():
+                for agent in self.ego_agents:
+                #agent = self.ego_agents["ego"]
+                    if agent.y == agent.goal:
+                        return agent.x
+                    elif agent.x == self.width:
+                        return 0 # No reward for causing the ego player to lose
+            else:
+                return 0 # No reward as test spec is not satisfied
+
+
     def find_children(self):
+        # st()
+        '''Find all children for a node'''
         if self.terminal:
             return set()
         if self.turn=="env":
             #agent = 'ag_env'
-            for agent in self.env_agents:
-                enabled_actions = self.enabled_actions(agent)
-                children = set()
-                count = 1
-                for ai in enabled_actions:
-                    x,y = enabled_actions[ai]
-                    env_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)]
-                    gi = GridWorld(self.lanes, self.width, self.initial_scene,ego_agents=self.ego_agents, env_agents=env_agents, turn="ego")
-                    #print("Env agent step possibility: ", str(count))
-                    #gi.print_state()
-                    count = count+1
-                    children.add(gi)
+            children = set()
+            count = 1
+            for gi in self.get_children_gridworlds():
+                children.add(gi)
+            # children = [make_gridworld(child,gridworld.ego_agents) for child in childrenlist]
+            # for action in self.possible_env_actions(self.env_agents):
+            #     children = set()
+            #     # make the gridworlds
+            #     env_agents = [Agent(name=agent.name, x=agent.x,y=agent.y,v=agent.v, goal=agent.goal) for agent in action]
+            #     gi = Gridworld(self.lanes, self.width, self.initial_scene,ego_agents=self.ego_agents, env_agents=env_agents, turn="ego")
+            #     count = count + 1
+            #     children.add(gi)
+            # for agent in self.env_agents:
+            #     enabled_actions = self.enabled_actions(agent)
+            #     children = set()
+            #     count = 1
+            #     for ai in enabled_actions:
+            #         x,y = enabled_actions[ai]
+            #         env_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)]
+            #         gi = GridWorld(self.lanes, self.width, self.initial_scene,ego_agents=self.ego_agents, env_agents=env_agents, turn="ego")
+            #         #print("Env agent step possibility: ", str(count))
+            #         #gi.print_state()
+            #         count = count+1
+            #         children.add(gi)
         else:
             for agent in self.ego_agents:
                 #agent = 'ego'
@@ -78,312 +296,8 @@ class GridWorld:
                     children.add(gi)
         return children
 
-#  is a gridworld object
-    def find_random_child(self):
-        if self.terminal:
-            return None
-        children = self.find_children()
-        ran_child = choice(list(children))
-        return ran_child
-
-    def setup_world(self):
-        #Agent = namedtuple('Agent', 'name x y v goal')
-        for i,agent in enumerate(self.initial_scene):
-            if agent.name[0:3] =='ego':
-                self.ego_agents.append(agent)
-            else:
-                self.env_agents.append(agent)
-        self.print_state()
-
-    def ego_take_input(self, action):
-        for agent in self.ego_agents:
-            enabled_actions = self.enabled_actions(agent)
-            if action in enabled_actions.keys():
-                x,y = enabled_actions[action]
-                agent.x = x
-                agent.y = y
-                #self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-            elif 'move' in enabled_actions.keys():
-                ran_act = choice(['move', 'stay'])
-                x,y = enabled_actions[ran_act]
-                agent.x = x
-                agent.y = y
-                # self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-            else:
-                x,y = enabled_actions['stay']
-                agent.x = x
-                agent.y = y
-                # self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-        #self.print_state()
-
-
-    def env_take_step(self, agent, action, print_st=0):
-        for agent in self.ego_agents:
-            enabled_actions = self.enabled_actions(agent)
-            if 'mergeR' in enabled_actions.keys(): # if you can merge - do it
-                x,y = enabled_actions['mergeR']
-                # agent.setxy(x,y)
-                agent.x = x
-                agent.y = y
-                # agent.step_mergeR()
-                #self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-            else:
-                actionlist = []
-                for action in enabled_actions.keys():
-                    actionlist.append(action)
-                    chosen_action = choice(actionlist)
-                    x,y = enabled_actions[chosen_action]
-                    agent.x = x
-                    agent.y = y
-                    #self.ego_agents.update({agent: Agent(name=self.ego_agents[agent].name, x=x,y=y,v=self.ego_agents[agent].v, goal=self.ego_agents[agent].goal)})
-            print('ego took step to {0},{1}'.format(agent.x,agent.y))
-        if print_st:
-            self.print_state()
-
-    def reward(self):
-        if not self.terminal:
-            raise RuntimeError("reward called on nonterminal gridworld")
-        else:
-            for agent in self.ego_agents:
-            #agent = self.ego_agents["ego"]
-                if agent.y == agent.goal:
-                    return agent.x
-                elif agent.x == self.width:
-                    return 0 # No reward for causing the ego player to lose
-
-    def enabled_actions(self,agent):
-        enabled_actions = dict()
-        x = agent.x
-        y = agent.y
-        for action in self.actions.keys():
-            move_x,move_y = self.actions[action]
-            act_x = x+move_x
-            act_y = y+move_y
-            if self.is_cell_free((act_x,act_y)) and act_y in range(1,3):
-                enabled_actions.update({action: (act_x,act_y)})
-            enabled_actions.update({'stay': (x,y)})
-        return enabled_actions
-
-    def is_cell_free(self, cellxy):
-        agents = self.ego_agents + self.env_agents
-        x,y = cellxy
-        for agent in agents:
-            if agent.x == x and agent.y == y:
-                return False
-        return True
-
-    def env_take_step(self, agent, action):
-        enabled_actions = self.enabled_actions(agent)
-        if action in enabled_actions:
-            x,y = enabled_actions[action]
-            agent.x = x
-            agent.y = y
-        else:
-            x,y = enabled_actions['stay']
-            agent.x = x
-            agent.y = y
-
-
-    def is_terminal(self):
-        for agent in self.ego_agents:
-            if agent.y == agent.goal or agent.x == self.width:
-                self.terminal = True
-            else:
-                self.terminal = False
-        return self.terminal
-
-    def check_terminal(self, agent):
-        if agent.y == agent.goal:
-            self.terminal = True
-        else:
-            self.terminal = False
-        return self.terminal
-
-    def print_state(self):
-        agents = self.ego_agents + self.env_agents
-        for i in range(1,self.lanes+1):
-            lanestr = []
-            for k in range(1,self.width+1):
-                occupied = False
-                for agent in agents:
-                    if agent.x == k and agent.y == i:
-                        lanestr.append('|'+str(agent.name[0]))
-                        occupied = True
-                if not occupied:
-                    lanestr.append('| ') # no car in this cell
-            lanestr.append('| ')
-            print(''.join(lanestr))
-        print('\n')
-
-def save_trace(filename,trace):
-    print('Saving trace in pkl file')
-    #import pdb; pdb.set_trace()
-    with open(filename, 'wb') as pckl_file:
-        pickle.dump(trace, pckl_file)
-
-def save_scene(gridworld,trace):
-    #import pdb; pdb.set_trace()
-    print('Saving scene {}'.format(gridworld.timestep))
-    ego_snapshot = []
-    env_snapshot = []
-    for agent in gridworld.ego_agents:
-        ego_snapshot.append((agent.name,agent.x,agent.y))
-    for agent in gridworld.env_agents:
-        env_snapshot.append((agent.name,agent.x,agent.y))
-    current_scene = Scene(gridworld.timestep, gridworld.map, ego_snapshot, env_snapshot)
-    trace.append(current_scene)
-    gridworld.timestep += 1
-    return trace
-#
-# def sanity_chk_ego_same(grid_new, gridworld):
-#     newx = gridworldnew.env_agents[0].x
-#     oldx = gridworld.env_agents[0].x
-#     newy = gridworldnew.env_agents[0].y
-#     oldy = gridworld.env_agents[0].y
-#     assert(oldx == newx)
-#     assert(newy == oldy)
-
-def new_init_scene():
-    ego_tuple = Agent(name ="ego", x = 1, y = 1, v=1, goal = 2)
-    tester_tuple = Agent(name ="ag_env", x = 1, y = 2, v=1, goal = 2)
-    return (ego_tuple, tester_tuple)
-
-def new_World():
-    init_scene = new_init_scene()
-    return GridWorld(2, 10, init_scene)
-
-def run_random_sim(maxstep):
-    # run a game
-    output_dir = os.getcwd()+'/saved_traces/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    filename = 'sim_trace.p'
-    filepath = output_dir + filename
-    gridworld = new_World()
-    gridworld.setup_world()
-    gridworld.save_scene()
-    acts = ['mergeL','stay','move', 'mergeR']
-    for i in range(0,maxstep):
-        #gridworld.timestep = i
-        print('Step {}'.format(i))
-        # environment takes step
-        for agent in gridworld.env_agents:
-            gridworld.env_take_step(agent,np.random.choice(acts))
-        gridworld.save_scene()
-        # ego takes step
-        gridworld.ego_take_step()
-        # save the scene
-        gridworld.save_scene()
-        # check if we are done
-        for agent in gridworld.ego_agents:
-            if gridworld.check_terminal(agent):
-                print('Goal reached')
-                # save the trace
-                print(gridworld.trace)
-                #import pdb; pdb.set_trace()
-                gridworld.save_trace(filepath)
-                return
-    self.save_trace(filepath)
-
-def append_trace(trace_dict, agent):
-     trace_dict["x"].append(agent.x)
-     trace_dict["y"].append(agent.y)
-     trace_dict["v"].append(agent.v)
-
-def play_game():
-    trace=[]
-    tree = MCTS()
-    # save the trace
-    output_dir = os.getcwd()+'/saved_traces/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    filename = 'sim_trace.p'
-    filepath = output_dir + filename
-    gridworld = new_World()
-    gridworld.setup_world()
-    trace = save_scene(gridworld,trace) # save initial scene
-    #print(gridworld.print_state())
-    # gridworld = new_World()
-    # gridworld.setup_world()
-    acts = ['mergeL','stay','move', 'mergeR']
-    ego_trace = {"x": [], "y": [], "v": []}
-    env_trace = {"x": [], "y": [], "v": []}
-    for agent in gridworld.env_agents:
-        append_trace(env_trace, agent)
-    for agent in gridworld.ego_agents:
-        append_trace(ego_trace, agent)
-
-    game_trace = [] # Same as ego_trace and env_trace condensed into one step with env going first
-    k = 0 #  Time stamp
-    # Initial step by environment:
-    for agent in gridworld.env_agents:
-        gridworld.env_take_step(agent,'move')
-    for agent in gridworld.env_agents:
-        append_trace(env_trace, agent)
-        trace = save_scene(gridworld,trace) # save first env action
-    gridworld.print_state()
-    while True:
-        gridworld.ego_take_input('mergeR')  # Ego action
-        for agent in gridworld.ego_agents:
-            append_trace(ego_trace, agent)
-        game_trace.append(deepcopy(gridworld))
-        grid_term = gridworld.is_terminal()
-        trace = save_scene(gridworld,trace)
-        gridworld.print_state()
-        if grid_term:
-            if k==0:
-                print("Poor initial choices; no MCTS rollouts yet")
-            for agent in gridworld.ego_agents:
-                if gridworld.width == agent.x and agent.y == 1:
-                    print('Did not merge; end of road')
-            else:
-                print("Goal reached; ego successfully merged!")
-            break
-        else:
-            k = k+1
-        gridworldnew = deepcopy(gridworld)
-        for k in range(50):
-            #print("Rollout: ", str(k+1))
-            tree.do_rollout(gridworldnew)
-        gridworldnew = tree.choose(gridworldnew) # Env action
-        #import pdb; pdb.set_trace()
-        # sanity_chk_ego_same(grid_new, gridworld)
-        newx = gridworldnew.env_agents[0].x
-        oldx = gridworld.env_agents[0].x
-        newy = gridworldnew.env_agents[0].y
-        oldy = gridworld.env_agents[0].y
-        if newx == oldx:
-            action = 'stay'
-        elif newy != oldy:
-            action = 'mergeR'
-        else:
-            action = 'move'
-        for agent in gridworld.env_agents:
-            gridworld.env_take_step(agent,action)
-        for agent in gridworld.env_agents:
-            append_trace(env_trace, agent)
-        trace = save_scene(gridworld,trace)
-        gridworld.print_state()
-        grid_term = gridworld.is_terminal()
-    save_trace(filepath,trace)
-    return ego_trace, env_trace, game_trace
-
-# Constructing trace:
-def append_trace(trace_dict, agent):
-    trace_dict["x"].append(agent.x)
-    trace_dict["y"].append(agent.y)
-    trace_dict["v"].append(agent.v)
-
-if __name__ == '__main__':
-    #run_random_sim(10)
-    output_dir = os.getcwd()+'/saved_traces/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    filename = 'sim_trace.p'
-    filepath = output_dir + filename
-    ego_trace, env_trace, game_trace = play_game()
-    print("Ego trajectory")
-    print(ego_trace)
-    print("")
-    print("Environment trajectory")
-    print(env_trace)
+def make_gridworld(agentdata,egodata):
+    '''Create a gridworld from a list of agents'''
+    env_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
+    gi = GridWorld(2, 10, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
+    return gi
