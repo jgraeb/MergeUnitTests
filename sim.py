@@ -125,7 +125,7 @@ def play_game():
         else:
             k = k+1
         gridworldnew = deepcopy(gridworld)
-        for k in range(500):
+        for k in range(200):
             #print("Rollout: ", str(k+1))
             tree.do_rollout(gridworldnew)
         gridworldnew = tree.choose(gridworldnew) # Env action

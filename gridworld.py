@@ -235,18 +235,21 @@ class GridWorld:
 
     def reward(self):
         '''Get reward for run'''
+        comp_reward = 5
         if not self.terminal:
             raise RuntimeError("reward called on nonterminal gridworld")
         else:
-            if self.spec_check():
-                for agent in self.ego_agents:
-                #agent = self.ego_agents["ego"]
-                    if agent.y == agent.goal:
-                        return agent.x
-                    elif agent.x == self.width:
-                        return 0 # No reward for causing the ego player to lose
-            else:
-                return 0 # No reward as test spec is not satisfied
+            # if self.spec_check():
+            for agent in self.ego_agents:
+            #agent = self.ego_agents["ego"]
+                if agent.y == agent.goal:
+                    if self.spec_check():
+                        return agent.x + comp_reward
+                    return 0#agent.x
+                elif agent.x == self.width:
+                    return 0 # No reward for causing the ego player to lose
+            # else:
+            #     return 0 # No reward as test spec is not satisfied
 
 
     def find_children(self):
@@ -260,26 +263,6 @@ class GridWorld:
             count = 1
             for gi in self.get_children_gridworlds():
                 children.add(gi)
-            # children = [make_gridworld(child,gridworld.ego_agents) for child in childrenlist]
-            # for action in self.possible_env_actions(self.env_agents):
-            #     children = set()
-            #     # make the gridworlds
-            #     env_agents = [Agent(name=agent.name, x=agent.x,y=agent.y,v=agent.v, goal=agent.goal) for agent in action]
-            #     gi = Gridworld(self.lanes, self.width, self.initial_scene,ego_agents=self.ego_agents, env_agents=env_agents, turn="ego")
-            #     count = count + 1
-            #     children.add(gi)
-            # for agent in self.env_agents:
-            #     enabled_actions = self.enabled_actions(agent)
-            #     children = set()
-            #     count = 1
-            #     for ai in enabled_actions:
-            #         x,y = enabled_actions[ai]
-            #         env_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)]
-            #         gi = GridWorld(self.lanes, self.width, self.initial_scene,ego_agents=self.ego_agents, env_agents=env_agents, turn="ego")
-            #         #print("Env agent step possibility: ", str(count))
-            #         #gi.print_state()
-            #         count = count+1
-            #         children.add(gi)
         else:
             for agent in self.ego_agents:
                 #agent = 'ego'
@@ -290,8 +273,6 @@ class GridWorld:
                     x,y = enabled_actions[ai]
                     ego_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)]
                     gi = GridWorld(self.lanes, self.width, self.initial_scene,ego_agents=ego_agents, env_agents=self.env_agents)
-                    #print("Ego step possibility: ", str(count))
-                    #gi.print_state()
                     count = count+1
                     children.add(gi)
         return children
