@@ -29,7 +29,7 @@ class WinningSet:
     def __init__(self,test_spec, ego_spec):
         self.test_spec = test_spec
         self.ego_spec = ego_spec
-        self.set = None
+        self.winning_set = None
 
     def make_compatible_automaton(self):
         """
@@ -37,10 +37,10 @@ class WinningSet:
         @type spec: `tulip.spec.form.GRSpec`
         @type aut: `omega.symbolic.temporal.Automaton`
         """
-        spec = spec.GRSpec(env_vars=env_vars, sys_vars=sys_vars,
-                    env_init=env_init, sys_init=sys_init,
-                    env_safety=env_safety, sys_safety=sys_safety,
-                    env_prog=env_prog, sys_prog=sys_prog)
+        spec = spec.GRSpec(env_vars=self.ego_spec.vars, sys_vars=self.test_spec.vars,
+                    env_init=self.ego_spec.init, sys_init=self.test_spec.init,
+                    env_safety=self.ego_spec.safety, sys_safety=self.test_spec.safety,
+                    env_prog=self.ego_spec.prog, sys_prog=self.test_spec.prog)
         aut = tulip._grspec_to_automaton(spec) #`temporal.Automaton` - compiled game with <>[] \/ []<> winning
         return aut
 
@@ -49,8 +49,18 @@ class WinningSet:
         # interface with TuLiP
         aut = self.make_compatible_automaton()
         z, yij, xijk = omega.solve_streett_game(aut)
-        self.set = z
-        pass
+        self.winning_set = z
+
 
     def synthesize_shield(self):
+        # create dictionary of allowable actions per state
         pass
+
+if __name__ == '__main__':
+    #testing winning set computation
+    # define the specs here
+    test_spec = Spec()
+    ego_spec = Spec()
+    w_set = WinningSet(test_spec,ego_spec)
+    w_set.find_winning_set()
+    st()
