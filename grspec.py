@@ -92,12 +92,6 @@ def dyn_props(sys_safe, tester_safe):
     for ii in range(1,5):
         sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
         sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii+1)+' && y=2)||(x='+str(ii)+' && y=2)|| (x='+str(ii+1)+' && y=1))'}
-
-    # No collisions:
-    sys_safe |= {'!(x1=x && y1=y)'}
-    sys_safe |= {'!(x2=x && y2=y)'}
-    tester_safe |= {'!(x1=x && y1=y)'}
-    tester_safe |= {'!(x2=x && y2=y)'}
     return sys_safe, tester_safe
 
 # End cases properties appending to existing safety properties:
@@ -113,7 +107,7 @@ def safe_append(sys_safe, tester_safe):
     tester_safe |= {'(x1=6 -> X(x1=6)'}
 
     # T1 at x=5 can stay or transition:
-    tester_safe |= {'(x1=6 -> X(x1=5 || x1=6)'}
+    tester_safe |= {'(x1=5 -> X(x1=5 || x1=6)'}
 
     # T2 at x=0 can stay or transition:
     tester_safe |= {'(x2=0 -> X(x2=0 || x2=1)'}
