@@ -15,7 +15,7 @@ import _pickle as pickle
 import os
 from copy import deepcopy
 from ipdb import set_trace as st
-import omega
+from omega.games import gr1
 # import tulip
 from tulip.interfaces.omega import _grspec_to_automaton
 from tulip import spec
@@ -56,7 +56,7 @@ class WinningSet:
     def find_winning_set(self):
         # interface with TuLiP
         aut = self.make_compatible_automaton()
-        z, yij, xijk = omega.solve_streett_game(aut)
+        z, yij, xijk = gr1.solve_streett_game(aut)
         self.winning_set = z
 
 
@@ -116,10 +116,27 @@ def specs_for_entire_track(tracklength):
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
 
+def simple_test_specs():
+    sys_vars = {}
+    sys_vars['x'] = (0, 3)
+    sys_init = {'x='+str(0)}
+    sys_safe = set()
+    sys_safe |= {'x=0 -> X((x=0) || (x=1))'}
+    sys_safe |= {'x=1 -> X((x=1) || (x=2))'}
+    sys_safe |= {'x=2 -> X((x=2) || (x=3))'}
+    sys_prog = {'x=3'}
+    ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
+    tester_vars = {}
+    tester_init = set()
+    tester_safe = set()
+    tester_prog = set()
+    test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
+    return ego_spec, test_spec
+
 if __name__ == '__main__':
     # testing winning set computation
     # define the specs here
-    ego_spec, test_spec = specs_for_entire_track(10)
+    ego_spec, test_spec = simple_test_specs()
     # system
     w_set = WinningSet(test_spec,ego_spec)
     w_set.find_winning_set()
