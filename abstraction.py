@@ -100,7 +100,10 @@ class Abstraction:
         self.states.append(State(sys,t1,t2))
 
     def make_gr_spec(self):
-        pass
+        specs = spec_pipeline(self)
+        st()
+
+
 
 if __name__ == '__main__':
     # actions passed from gridworld

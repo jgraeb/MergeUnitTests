@@ -48,7 +48,7 @@ class GridWorld:
     def setup_world(self):
         '''Initializing the gridworld'''
         for i,agent in enumerate(self.initial_scene):
-            if agent.name[0:3] =='ego':
+            if agent.name[0:3] =='sys':
                 self.ego_agents.append(agent)
             else:
                 self.env_agents.append(agent)
@@ -235,7 +235,7 @@ class GridWorld:
 
     def reward(self):
         '''Get reward for run'''
-        comp_reward = 5
+        # comp_reward = 5
         if not self.terminal:
             raise RuntimeError("reward called on nonterminal gridworld")
         else:
@@ -243,11 +243,13 @@ class GridWorld:
             for agent in self.ego_agents:
             #agent = self.ego_agents["ego"]
                 if agent.y == agent.goal:
-                    if self.spec_check():
-                        return agent.x + comp_reward
-                    return 0#agent.x
+                    # if self.spec_check():
+                    return agent.x
+                    # return 0#agent.x
                 elif agent.x == self.width:
                     return 0 # No reward for causing the ego player to lose
+                # else:
+                #     return 0
             # else:
             #     return 0 # No reward as test spec is not satisfied
 

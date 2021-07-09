@@ -72,12 +72,12 @@ class MCTS:
         invert_reward = True
         while True:
             if node.is_terminal():
-                print("---------- End Simulate ---------")
-                print("Terminal state in simulate: ")
-                print(node.print_state())
+                # print("---------- End Simulate ---------")
+                # print("Terminal state in simulate: ")
+                # print(node.print_state())
                 # st()
                 reward = node.reward()
-                print(reward)
+                # print(reward)
                 return self.max_cells - reward if invert_reward else reward
             node = node.find_random_child()
             invert_reward = not invert_reward

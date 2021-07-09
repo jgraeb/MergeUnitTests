@@ -211,7 +211,7 @@ if __name__ == '__main__':
     # define the specs here
     ego_spec, test_spec = simple_test_specs()
     # system
-    w_set = WinningSet(test_spec,ego_spec)
+    w_set = WinningSet()
     fsm = w_set.make_labeled_fsm()
     spec = w_set.spec_from_fsm(fsm)
     winning_set = w_set.find_winning_set(spec)
