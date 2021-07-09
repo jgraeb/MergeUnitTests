@@ -19,6 +19,8 @@ from omega.games import gr1
 # import tulip
 from tulip.interfaces.omega import _grspec_to_automaton
 from tulip import spec
+from tulip import transys
+from tulip.synth import sys_to_spec
 import logging
 
 class Spec:
@@ -30,39 +32,110 @@ class Spec:
 
 
 class WinningSet:
-    def __init__(self,test_spec, ego_spec):
-        self.test_spec = test_spec
-        self.ego_spec = ego_spec
+    def __init__(self):
         self.spec = None
         self.winning_set = None
 
-    def make_compatible_automaton(self):
+    def make_labeled_fsm(self):
+        print('Making the abstracted FSM')
+        logger = logging.getLogger(__name__)
+
+        # Create a finite transition system
+        sys_sws = transys.FTS()
+        # add the states
+        for i in range(8):
+            sys_sws.states.add('s' + str(i)+ '_t')
+            sys_sws.states.add('s' + str(i)+ '_s')
+        # add the actions
+        sys_sws.env_actions |= ['stay_s','merge_s','move_s']
+        sys_sws.sys_actions |= ['stay_t','move_t']
+        # add the transitions - manually currenty as mapped to abstract states
+        sys_sws.transitions.add('s1_s','s1_t', env_actions='stay_s')
+        sys_sws.transitions.add('s1_t','s1_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s2_s','s2_t', env_actions='stay_s')
+        sys_sws.transitions.add('s2_t','s2_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s1_t','s2_s', sys_actions='move_t')
+        sys_sws.transitions.add('s3_s','s2_t', env_actions='move_s')
+        sys_sws.transitions.add('s2_t','s3_s', sys_actions='move_t')
+        sys_sws.transitions.add('s3_s','s4_t', env_actions='merge_s')
+        sys_sws.transitions.add('s3_s','s3_t', env_actions='stay_s')
+        sys_sws.transitions.add('s3_t','s3_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s4_t','s4_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s4_s','s4_t', env_actions='stay_s')
+        sys_sws.transitions.add('s1_s','s0_t', env_actions='merge_s')
+        sys_sws.transitions.add('s0_t','s0_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s0_s','s0_t', env_actions='stay_s')
+        sys_sws.transitions.add('s1_s','s5_t', env_actions='move_s')
+        sys_sws.transitions.add('s5_t','s1_s', sys_actions='move_t')
+        sys_sws.transitions.add('s5_s','s5_t', env_actions='stay_s')
+        sys_sws.transitions.add('s5_t','s5_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s5_s','s6_t', env_actions='move_s')
+        sys_sws.transitions.add('s6_t','s5_s', sys_actions='move_t')
+        sys_sws.transitions.add('s6_t','s6_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s6_s','s6_t', env_actions='stay_s')
+        sys_sws.transitions.add('s5_s','s7_t', env_actions='merge_s')
+        sys_sws.transitions.add('s7_t','s7_s', sys_actions='stay_t')
+        sys_sws.transitions.add('s7_s','s7_t', env_actions='stay_s')
+        # specify initial conditions if desired
+        # sys_sws.states.initial.add('s1_s')
+        # sys_sws.states.initial.add('s2_s')
+        # add the atomic propositions
+        sys_sws.atomic_propositions.add_from({'goal'})
+        sys_sws.states.add('s0_s', ap={'goal'})
+        sys_sws.states.add('s0_t', ap={'goal'})
+        print(sys_sws)
+        sys_sws.save('example_merge_in_front.pdf')
+        return sys_sws
+
+    def spec_from_fsm(self, sys_sws):
+        ignore_initial = True
+        statevar = 'state'
+        spec = sys_to_spec(sys_sws, ignore_initial, statevar,bool_states=False, bool_actions=False)
+        spec.sys_prog.append('goal')
+        print(spec.pretty())
+        return spec
+
+    def make_compatible_automaton(self,spec):
         """
         create automaton from spec and abstraction
         @type spec: `tulip.spec.form.GRSpec`
         @type aut: `omega.symbolic.temporal.Automaton`
         """
-        logging.basicConfig(level=logging.WARNING)
-        show = False
-        self.spec = spec.GRSpec(env_vars=self.ego_spec.variables, sys_vars=self.test_spec.variables,
-                    env_init=self.ego_spec.init, sys_init=self.test_spec.init,
-                    env_safety=self.ego_spec.safety, sys_safety=self.test_spec.safety,
-                    env_prog=self.ego_spec.prog, sys_prog=self.test_spec.prog)
-        print(self.spec.pretty())
-        aut = _grspec_to_automaton(self.spec) #`temporal.Automaton` - compiled game with <>[] \/ []<> winning
+        # logging.basicConfig(level=logging.WARNING)
+        # show = False
+        # self.spec = spec.GRSpec(env_vars=self.ego_spec.variables, sys_vars=self.test_spec.variables,
+        #             env_init=self.ego_spec.init, sys_init=self.test_spec.init,
+        #             env_safety=self.ego_spec.safety, sys_safety=self.test_spec.safety,
+        #             env_prog=self.ego_spec.prog, sys_prog=self.test_spec.prog)
+        # print(self.spec.pretty())
+        aut = _grspec_to_automaton(spec) #`temporal.Automaton` - compiled game with <>[] \/ []<> winning
         return aut
 
 
-    def find_winning_set(self):
+    def find_winning_set(self,spec):
         # interface with TuLiP
-        aut = self.make_compatible_automaton()
+        aut = self.make_compatible_automaton(spec)
         z, yij, xijk = gr1.solve_streett_game(aut)
         self.winning_set = z
+        return z
 
 
     def synthesize_shield(self):
         # create dictionary of allowable actions per state
-        pass
+        shield_dict = dict()
+        shield_dict.update({'s0_t':['move_t']})
+        shield_dict.update({'s1_t':['move_t','stay_t']})
+        shield_dict.update({'s2_t':['stay_t']})
+        shield_dict.update({'s5_t':['move_t']})
+        print(shield_dict)
+        return shield_dict
+
+    def get_winning_set_shield(self):
+        fsm = w_set.make_labeled_fsm()
+        spec = w_set.spec_from_fsm(fsm)
+        winning_set = w_set.find_winning_set(spec)
+        shield_dict = w_set.synthesize_shield()
+        return shield_dict
 
 def specs_for_entire_track(tracklength):
     sys_vars = {}
@@ -139,5 +212,7 @@ if __name__ == '__main__':
     ego_spec, test_spec = simple_test_specs()
     # system
     w_set = WinningSet(test_spec,ego_spec)
-    w_set.find_winning_set()
-    st()
+    fsm = w_set.make_labeled_fsm()
+    spec = w_set.spec_from_fsm(fsm)
+    winning_set = w_set.find_winning_set(spec)
+    shield_dict = w_set.synthesize_shield()
