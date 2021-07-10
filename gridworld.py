@@ -11,6 +11,7 @@ import numpy as np
 from scene import Scene
 from agent import Agent
 from map import Map
+from winning_set import WinningSet
 import _pickle as pickle
 import os
 from copy import deepcopy
@@ -42,6 +43,7 @@ class GridWorld:
         else:
             self.turn = "env"
         self.terminal = False # This is when ego finally merges to cell 2; should be set to the ego agent tuple once merge is complete
+        self.shield_dict = None
 
     '''-----Basic gridworld functions-----'''
 
@@ -70,6 +72,37 @@ class GridWorld:
         agentpos = (agent[1],agent[2])
         enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
         return enabled_actions
+
+    def get_relative_positions(self):
+        ego_x = self.ego_agents[0].x
+        ego_y = self.ego_agents[0].y
+        for agent in self.env_agents:
+            agent_x = agent.x - ego_x
+            agent_y = agent.y - ego_y
+        return (agent_x,agent_y)
+
+    def load_shield(self): # pass spec to winning set analysis here
+        if not self.shield_dict:
+            w_set = WinningSet()
+            self.shield_dict = w_set.synthesize_shield()
+        self.mapping = dict() # positions in (x,y)
+        self.mapping.update({(0,1): 's1_t'})
+        self.mapping.update({(-1,1): 's5_t'})
+        self.mapping.update({(1,1): 's2_t'})
+        self.mapping.update({(-1,0): 's0_t'})
+
+    def shield(self, enabled_actions):
+        if not self.shield_dict:
+            self.load_shield()
+        # map state names to relative positions
+        rel_pos = self.get_relative_positions()
+        # run enabled actions through dict
+        ok_actions = self.shield_dict[self.mapping[rel_pos]]
+        shielded_actions = dict()
+        for action in ok_actions:
+            if action in enabled_actions:
+                shielded_actions.update({action: enabled_actions[action]})
+        return shielded_actions
 
     def ego_take_input(self, action):
         '''Ego agent takes the step'''
@@ -101,7 +134,9 @@ class GridWorld:
             if self.is_cell_free((act_x,act_y),agent_list) and act_y in range(1,3):
                 enabled_actions.update({action: (act_x,act_y)})
             enabled_actions.update({'stay': (x,y)})
-        return enabled_actions
+        shielded_actions = self.shield(enabled_actions)
+        # st()
+        return shielded_actions
 
     def enabled_actions(self,agent):
         '''Find possible actions for agent'''
@@ -248,10 +283,6 @@ class GridWorld:
                     # return 0#agent.x
                 elif agent.x == self.width:
                     return 0 # No reward for causing the ego player to lose
-                # else:
-                #     return 0
-            # else:
-            #     return 0 # No reward as test spec is not satisfied
 
 
     def find_children(self):

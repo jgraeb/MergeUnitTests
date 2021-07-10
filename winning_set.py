@@ -55,6 +55,7 @@ class WinningSet:
         sys_sws.transitions.add('s2_s','s2_t', env_actions='stay_s')
         sys_sws.transitions.add('s2_t','s2_s', sys_actions='stay_t')
         sys_sws.transitions.add('s1_t','s2_s', sys_actions='move_t')
+        sys_sws.transitions.add('s2_s','s1_t', sys_actions='move_s')
         sys_sws.transitions.add('s3_s','s2_t', env_actions='move_s')
         sys_sws.transitions.add('s2_t','s3_s', sys_actions='move_t')
         sys_sws.transitions.add('s3_s','s4_t', env_actions='merge_s')
@@ -122,12 +123,13 @@ class WinningSet:
 
     def synthesize_shield(self):
         # create dictionary of allowable actions per state
+        # for now manually -> should be from winning set
         shield_dict = dict()
-        shield_dict.update({'s0_t':['move_t']})
-        shield_dict.update({'s1_t':['move_t','stay_t']})
-        shield_dict.update({'s2_t':['stay_t']})
-        shield_dict.update({'s5_t':['move_t']})
-        print(shield_dict)
+        shield_dict.update({'s0_t':['move']})
+        shield_dict.update({'s1_t':['move','stay']})
+        shield_dict.update({'s2_t':['stay']})
+        shield_dict.update({'s5_t':['move']})
+        # print(shield_dict)
         return shield_dict
 
     def get_winning_set_shield(self):
@@ -209,7 +211,7 @@ def simple_test_specs():
 if __name__ == '__main__':
     # testing winning set computation
     # define the specs here
-    ego_spec, test_spec = simple_test_specs()
+    # ego_spec, test_spec = simple_test_specs()
     # system
     w_set = WinningSet()
     fsm = w_set.make_labeled_fsm()
