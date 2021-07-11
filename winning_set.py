@@ -55,7 +55,7 @@ class WinningSet:
         sys_sws.transitions.add('s2_s','s2_t', env_actions='stay_s')
         sys_sws.transitions.add('s2_t','s2_s', sys_actions='stay_t')
         sys_sws.transitions.add('s1_t','s2_s', sys_actions='move_t')
-        sys_sws.transitions.add('s2_s','s1_t', sys_actions='move_s')
+        sys_sws.transitions.add('s2_s','s1_t', env_actions='move_s')
         sys_sws.transitions.add('s3_s','s2_t', env_actions='move_s')
         sys_sws.transitions.add('s2_t','s3_s', sys_actions='move_t')
         sys_sws.transitions.add('s3_s','s4_t', env_actions='merge_s')
