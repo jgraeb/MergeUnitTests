@@ -8,16 +8,21 @@
 from random import choice
 # from mcts import MCTS, Node
 import numpy as np
+from tulip.spec import form
 from scene import Scene
 from agent import Agent
 from map import Map
+import networkx as nx
+from omega.symbolic import temporal as trl
 import _pickle as pickle
 import os
+from omega.games import enumeration as enum
+from omega.symbolic import enumeration as sym_enum
 from copy import deepcopy
-from ipdb import set_trace as st
+from pdb import set_trace as st
 from omega.games import gr1
 # import tulip
-from tulip.interfaces.omega import _grspec_to_automaton
+from tulip.interfaces.omega import _grspec_to_automaton, _strategy_to_state_annotated
 from tulip import spec
 from tulip import transys
 from tulip.synth import sys_to_spec
@@ -55,7 +60,7 @@ class WinningSet:
         sys_sws.transitions.add('s2_s','s2_t', env_actions='stay_s')
         sys_sws.transitions.add('s2_t','s2_s', sys_actions='stay_t')
         sys_sws.transitions.add('s1_t','s2_s', sys_actions='move_t')
-        sys_sws.transitions.add('s2_s','s1_t', sys_actions='move_s')
+        sys_sws.transitions.add('s2_s','s1_t', env_actions='move_s')
         sys_sws.transitions.add('s3_s','s2_t', env_actions='move_s')
         sys_sws.transitions.add('s2_t','s3_s', sys_actions='move_t')
         sys_sws.transitions.add('s3_s','s4_t', env_actions='merge_s')
@@ -99,6 +104,7 @@ class WinningSet:
     def make_compatible_automaton(self,spec):
         """
         create automaton from spec and abstraction
+        opt =  tester (test environment needs a controller) or system (system needs a controller)
         @type spec: `tulip.spec.form.GRSpec`
         @type aut: `omega.symbolic.temporal.Automaton`
         """
@@ -208,6 +214,56 @@ def simple_test_specs():
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
 
+def grspec_4():
+    sp = form.GRSpec()
+    sp.moore = False
+    sp.env_init = ['(x = 0) & (y = "a")']
+    sp.env_vars = dict(x=(0, 3))
+    sp.sys_vars = dict(y=['a', 'b'])
+    sp.sys_safety = [
+        '(x = 0) -> (y = "a")',
+        '(x > 0) -> (y = "b")']
+    return sp
+
+def gr1_specification():
+    """Return a temporal logic spec in the GR(1) fragment."""
+    aut = trl.Automaton()
+    aut.declare_variables(x=(1, 3), y=(-3, 3))
+    aut.varlist.update(env=['x'], sys=['y'])
+    aut.init['env'] = 'x = 1'
+    aut.init['sys'] = 'y = 2'
+    aut.action['env'] = '''
+        /\ x \in 1..2
+        /\ x' \in 1..2
+        '''
+    aut.action['sys'] = '''
+        /\ y \in -3..3
+        /\ y' = x - 3
+        '''
+    aut.win['<>[]'] = aut.bdds_from('x = 2')
+    aut.win['[]<>'] = aut.bdds_from('y != -1')
+    aut.qinit = '\E \A'
+    aut.moore = True
+    aut.plus_one = True
+    return aut
+
+def synthesize_some_controller(aut):
+    """Return a controller that implements the spec.
+    If no controller exists, then raise an `Exception`.
+    The returned controller is represented as a `networkx` graph.
+    """
+    z, yij, xijk = gr1.solve_streett_game(aut)
+    gr1.make_streett_transducer(z, yij, xijk, aut)
+    g = enum.action_to_steps(
+        aut, env='env', sys='impl', qinit=aut.qinit)
+    return g
+
+def dump_graph_as_figure(g):
+    """Create a PDF file showing the graph `g`."""
+    h, _ = sym_enum._format_nx(g)
+    pd = nx.drawing.nx_pydot.to_pydot(h)
+    pd.write_pdf('game_states.pdf')
+
 if __name__ == '__main__':
     # testing winning set computation
     # define the specs here
@@ -217,4 +273,5 @@ if __name__ == '__main__':
     fsm = w_set.make_labeled_fsm()
     spec = w_set.spec_from_fsm(fsm)
     winning_set = w_set.find_winning_set(spec)
+    st()
     shield_dict = w_set.synthesize_shield()
