@@ -6,9 +6,10 @@
 #                                                                           #
 #############################################################################
 import numpy as np
-from ipdb import set_trace as st
+# from ipdb import set_trace as st
 import omega
 import tulip
+import pdb
 
 class State:
     def __init__(self, sys_pos, t1_pos, t2_pos):
@@ -112,3 +113,4 @@ if __name__ == '__main__':
 
     abs = Abstraction(2,3,sys_actions,tester_actions)
     abs.setup_abstraction()
+    pdb.set_trace()
