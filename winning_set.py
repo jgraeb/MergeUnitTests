@@ -42,6 +42,8 @@ class Spec:
         self.prog = progress
         
 # Get GRSpec:
+# Standard form controller synthesis of GR(1) specifications:
+# env_init & []env_safe & []<>env_prog --> sys_init & []sys_safe & []<>sys_prog
 def make_grspec(sys_spec, env_spec):
     env_vars = env_spec.variables
     sys_vars = sys_spec.variables
@@ -51,7 +53,6 @@ def make_grspec(sys_spec, env_spec):
     sys_safe = sys_spec.safety
     env_prog = env_spec.prog
     sys_prog = sys_spec.prog
-    
     return spec.GRSpec(env_vars, sys_vars, env_init, sys_init,
                     env_safe, sys_safe, env_prog, sys_prog)
 
@@ -364,55 +365,72 @@ def example_win_set():
     # initial values that satisfy `env_init`.
     specs.qinit = r'\E \A'
     return specs
-    
+
+# System and environment have been switched: 
 def specs_for_entire_track(tracklength):
     sys_vars = {}
     sys_vars['x'] = (0, tracklength) # 0: system is much behind the second tester car, 6: system is much further than the first tester car
-    sys_vars['y'] = (0,1)
-    sys_init = {'x='+str(0), 'y='+str(0)}
-    sys_prog = {'y=1'} # Eventually, the system should merge
+    sys_vars['y'] = (1,2)
+    sys_init = {'x='+str(0), 'y='+str(1)}
+    sys_prog = {'y=2'} # Eventually, the system should merge
     sys_safe = set()
-    sys_safe |= {'!(x1=x && y1=y)'}
-    sys_safe |= {'!(x2=x && y2=y)'}
+    
+    # Dynamics for merging into adjacent track:
     for ii in range(1,tracklength-1):
-        sys_safe |= {'(x='+str(ii)+' && y=0) -> X((x='+str(ii+1)+' && y=0)||(x='+str(ii)+' && y=0)|| (x='+str(ii+1)+' && y=1))'}
-        sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=0))'}
+        sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
+        sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii+1)+' && y=2)||(x='+str(ii)+' && y=2)|| (x='+str(ii+1)+' && y=1))'}
     sys_safe |= {'x=0 -> X(x=0 && x=1)'}
-    sys_safe |= {'x=9 -> X(x=9 && x=10)'}
-    sys_safe |= {'x=10 -> X(x=10)'}
+    sys_safe |= {'x='+str(tracklength-1)+' -> X(x='+str(tracklength-1)+' && x='+str(tracklength)+')'}
+    sys_safe |= {'x='+str(tracklength)+'-> X(x='+str(tracklength)+')'}
+    
     # testers
     tester_vars = {}
     tester_vars['x1'] = (1,tracklength)
-    tester_vars['y1'] = (0,1)
+    tester_vars['y1'] = (1,2)
     tester_vars['x2'] = (0,tracklength-1)
-    tester_vars['y2'] = (0,1)
-    tester_init = {'x1='+str(1), 'y1='+str(1), 'x2='+str(0), 'y2='+str(1)}
+    tester_vars['y2'] = (1,2)
+    tester_init = {'x1='+str(1), 'y1='+str(2), 'x2='+str(0), 'y2='+str(2)}
     tester_prog = set()
     for ki in range(1,tracklength-1):
-        tester_prog |= {'((x='+str(ki+1)+') && (x1='+str(ki+2)+') && (x2='+str(ki)+')) && (y=1 && y1=1 && y2=1)'}
+        tester_prog |= {'((x='+str(ki+1)+') && (x1='+str(ki+2)+') && (x2='+str(ki)+')) && (y=2 && y1=2 && y2=2)'}
     tester_safe = set()
-    tester_safe |= {'!(x1=x2 && y1=y2)'}
-    tester_safe |= {'!(x1=x && y1=y)'}
-    tester_safe |= {'!(x2=x && y2=y)'}
+    
+    # No collision with other vehicles:
+    for yi in range(1,3):
+        for xi in range(0, tracklength+1):
+            if xi!= tracklength:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                tester_safe |= {'!(x='+str(xi)+' && x2 ='+str(xi)+' && y= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                sys_safe |= {'!(x='+str(xi)+' && x2 ='+str(xi)+' && y= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+
+            if xi != 0:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                tester_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
+                sys_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
+                
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
+    
+    # Tester dynamics
     for ii in range(1,tracklength-1):
         tester_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
         tester_safe |= {'(x2='+str(ii)+' && y2=2) -> X((x2='+str(ii+1)+' && y2=2)||(x2='+str(ii)+' && y2=2)|| (x2='+str(ii+1)+' && y2=1))'}
         tester_safe |= {'(x2='+str(ii)+' && y2=1) -> X((x2='+str(ii+1)+' && y2=1)||(x2='+str(ii)+' && y2=1)|| (x2='+str(ii+1)+' && y2=2))'}
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
     tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
-    tester_safe |= {'(x2='+str(tracklength-1)+' -> X(x2='+str(tracklength-1)+')'}
-    tester_safe |= {'(x1='+str(tracklength)+' -> X(x1='+str(tracklength)+')'}
-    tester_safe |= {'(x1='+str(tracklength-1)+' -> X(x1='+str(tracklength-1)+' || x1='+str(tracklength)+')'}
-    tester_safe |= {'(x2=0 -> X(x2=0 || x2=1)'}
-    #
+    tester_safe |= {'(x2='+str(tracklength-1)+') -> X(x2='+str(tracklength-1)+')'}
+    tester_safe |= {'(x1='+str(tracklength)+') -> X(x1='+str(tracklength)+')'}
+    tester_safe |= {'(x1='+str(tracklength-1)+') -> X(x1='+str(tracklength-1)+' || x1='+str(tracklength)+')'}
+    tester_safe |= {'(x2=0) -> X(x2=0 || x2=1)'}
+    
+    # Terminal conditions: Once car merges, it remains merged.
     for xi in range(0,tracklength+1):
         for x1i in range(1,tracklength):
             for x2i in range(0,x1i):
-                other_st_i = '((x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+'))'
-                sys_safe |= {'((y=1) && '+other_st_i+')-> X('+other_st_i+'&& (y=1))'}
-                tester_safe |= {'((y=1) && '+other_st_i+')-> X('+other_st_i+'&& (y=1))'}
-    #
+                other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
+                sys_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
+                tester_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
+    
+    # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
@@ -433,39 +451,6 @@ def simple_test_specs():
     tester_prog = set()
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
-
-def grspec_4():
-    sp = form.GRSpec()
-    sp.moore = False
-    sp.env_init = ['(x = 0) & (y = "a")']
-    sp.env_vars = dict(x=(0, 3))
-    sp.sys_vars = dict(y=['a', 'b'])
-    sp.sys_safety = [
-        '(x = 0) -> (y = "a")',
-        '(x > 0) -> (y = "b")']
-    return sp
-
-def gr1_specification():
-    """Return a temporal logic spec in the GR(1) fragment."""
-    aut = trl.Automaton()
-    aut.declare_variables(x=(1, 3), y=(-3, 3))
-    aut.varlist.update(env=['x'], sys=['y'])
-    aut.init['env'] = 'x = 1'
-    aut.init['sys'] = 'y = 2'
-    aut.action['env'] = '''
-        /\ x \in 1..2
-        /\ x' \in 1..2
-        '''
-    aut.action['sys'] = '''
-        /\ y \in -3..3
-        /\ y' = x - 3
-        '''
-    aut.win['<>[]'] = aut.bdds_from('x = 2')
-    aut.win['[]<>'] = aut.bdds_from('y != -1')
-    aut.qinit = '\E \A'
-    aut.moore = True
-    aut.plus_one = True
-    return aut
 
 def synthesize_some_controller(aut):
     """Return a controller that implements the spec.
@@ -555,7 +540,7 @@ if __name__ == '__main__':
     # define the specs here
     # ego_spec, test_spec = simple_test_specs()
     # system
-    ex = 4
+    ex = 5
     if ex == 1:      # Simple FSM
         w_set = WinningSet()
         fsm = w_set.make_labeled_fsm()
@@ -585,9 +570,17 @@ if __name__ == '__main__':
         w_set = WinningSet()
         aut = example_win_set3()
         
-    # pdb.set_trace()
+    elif ex==5:
+        ego_spec, test_spec = specs_for_entire_track(3)
+        gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to 
+        # invert the tester and the system
+        w_set = WinningSet()
+        w_set.set_spec(gr_spec)
+        aut = w_set.make_compatible_automaton(gr_spec)
+        
     winning_set = w_set.find_winning_set(aut)
-    state = {'x': 1, 'y': 3}
+    pdb.set_trace()
+    state = {'x': 1, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}
     check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
     if check_bdd:
         print("State is in the winning set")
