@@ -86,8 +86,12 @@ class MCTS:
     def _backpropagate(self, path, reward):
         "Send the reward back up to the ancestors of the leaf"
         for node in reversed(path):
-            self.N[node] += 1
-            self.Q[node] += reward
+            if reward == 0:
+                self.N[node] += 0
+                self.Q[node] += reward
+            else:
+                self.N[node] += 1
+                self.Q[node] += reward
             reward = self.max_cells - reward  # 1 for me is 0 for my enemy, and vice versa
 
     def _uct_select(self, node):
@@ -100,9 +104,12 @@ class MCTS:
 
         def uct(n):
             "Upper confidence bound for trees"
-            return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
-                log_N_vertex / self.N[n]
-            )
+            if self.N[n] == 0:
+                return 0
+            else:
+                return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
+                    log_N_vertex / self.N[n]
+                )
 
         return max(self.children[node], key=uct)
 

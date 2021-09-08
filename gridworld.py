@@ -135,7 +135,7 @@ class GridWorld:
                 enabled_actions.update({action: (act_x,act_y)})
             enabled_actions.update({'stay': (x,y)})
         shielded_actions = self.shield(enabled_actions)
-        # st()
+        st()
         return shielded_actions
 
     def enabled_actions(self,agent):
