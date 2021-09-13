@@ -540,7 +540,7 @@ if __name__ == '__main__':
     # define the specs here
     # ego_spec, test_spec = simple_test_specs()
     # system
-    ex = 5
+    ex = 5 # Abstraction for the merge example
     if ex == 1:      # Simple FSM
         w_set = WinningSet()
         fsm = w_set.make_labeled_fsm()
@@ -570,7 +570,7 @@ if __name__ == '__main__':
         w_set = WinningSet()
         aut = example_win_set3()
         
-    elif ex==5:
+    elif ex==5: # Constructing abstraction for the merge example
         ego_spec, test_spec = specs_for_entire_track(3)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to 
         # invert the tester and the system
@@ -580,8 +580,9 @@ if __name__ == '__main__':
         
     winning_set = w_set.find_winning_set(aut)
     pdb.set_trace()
-    state = {'x': 1, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}
-    check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
+    # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.
+    state = {'x': 1, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+    check_bdd = w_set.check_state_in_winset(aut, winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
     if check_bdd:
         print("State is in the winning set")
     else:
