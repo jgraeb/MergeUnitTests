@@ -22,8 +22,10 @@ def new_init_scene():
     agents = []
     ego_tuple = Agent(name ="system", x = 1, y = 1, v=1, goal = 2)
     agents.append(ego_tuple)
-    tester_tuple = Agent(name ="tester_0", x = 1, y = 2, v=1, goal = 2)
+    tester_tuple = Agent(name ="tester_0", x = 2, y = 2, v=1, goal = 2)
     agents.append(tester_tuple)
+    tester_tuple_2 = Agent(name ="tester_1", x = 1, y = 2, v=1, goal = 2)
+    agents.append(tester_tuple_2)
     # tester_tuple2 = Agent(name ="ag_env_1", x = 1, y = 2, v=1, goal = 2)
     # agents.append(tester_tuple2)
     return agents

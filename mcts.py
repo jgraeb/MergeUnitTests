@@ -86,12 +86,12 @@ class MCTS:
     def _backpropagate(self, path, reward):
         "Send the reward back up to the ancestors of the leaf"
         for node in reversed(path):
-            if reward == 0:
-                self.N[node] += 0
-                self.Q[node] += reward
-            else:
-                self.N[node] += 1
-                self.Q[node] += reward
+            # if reward == 0:
+            #     self.N[node] += 0
+            #     self.Q[node] += reward
+            # else:
+            self.N[node] += 1
+            self.Q[node] += reward
             reward = self.max_cells - reward  # 1 for me is 0 for my enemy, and vice versa
 
     def _uct_select(self, node):

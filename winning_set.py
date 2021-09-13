@@ -31,7 +31,7 @@ from tulip import spec
 from tulip import transys
 from tulip.synth import sys_to_spec
 import logging
-
+from ipdb import set_trace as st
 from tulip import transys, spec, synth
 
 class Spec:
@@ -40,7 +40,7 @@ class Spec:
         self.init = init
         self.safety = safety
         self.prog = progress
-        
+
 # Get GRSpec:
 # Standard form controller synthesis of GR(1) specifications:
 # env_init & []env_safe & []<>env_prog --> sys_init & []sys_safe & []<>sys_prog
@@ -60,10 +60,10 @@ class WinningSet:
     def __init__(self):
         self.spec = None
         self.winning_set = None
-   
+
     def set_spec(self, spec):
         self.spec = spec
-        
+
     def make_labeled_fsm(self):
         print('Making the abstracted FSM')
         logger = logging.getLogger(__name__)
@@ -141,18 +141,18 @@ class WinningSet:
         # print(self.spec.pretty())
         aut = _grspec_to_automaton(spec) #`temporal.Automaton` - compiled game with <>[] \/ []<> winning
         return aut
-    
+
     # Function to check whether state can be in winning set
     # Inputs: Automaton aut, winning set BDD z, and state dictionary state_dict
-    # The state dictionary should be as follows: state_dict = {'x': 10, 'y':15}, if the state 
+    # The state dictionary should be as follows: state_dict = {'x': 10, 'y':15}, if the state
     # want to check has values of x=10 and y=15.
-    
+
     def check_state_in_winset(self, aut, z, state_dict):
        # all identifiers are unprimed ?
        # avoid priming constants
        # (no primed identifiers are declared for constants)
         # state_dict = {state: stx.prime(state)}
-        
+
         # Debugging scripts have to be removed
         # support = aut.support(z)
         # all identifiers are unprimed ?
@@ -161,21 +161,21 @@ class WinningSet:
         # (no primed identifiers are declared for constants)
         #vrs = {name for name in support if prm.is_variable(name, aut)}
         # state_dict = {var: stx.prime(var) for var in vrs}
-        
+
         # test
         # vrs = {'x=3'}
         # state_dict = {var: stx.prime(var) for var in vrs}
-
+        st()
         check_bdd = aut.let(state_dict, z)
         if check_bdd == aut.true:
             return True
         elif check_bdd == aut.false:
-            return False            
+            return False
         else:
             print("Boolean expression not returned")
 
     def find_winning_set(self,aut):
-        # interface with TuLiP        
+        # interface with TuLiP
         z, yij, xijk = gr1.solve_streett_game(aut)
         self.winning_set = z
         # type_hint_expr = aut.type_hint_for(['X1', 'X2', 'X3'])
@@ -218,7 +218,7 @@ def example_win_set3():
     # x \in 1..2 -> x \in  [1,2), x' \in [1,5)
     # Add safety:
     aut.action['sys'] = r'''
-        /\ (\/ (x = 1 /\ x' \in 1..4)    
+        /\ (\/ (x = 1 /\ x' \in 1..4)
             \/ (x = 2 /\ (x' \in 1..3 \/ x' = 5))
             \/ (x = 3 /\ (x' \in 1..5))
             \/ (x = 4 /\ (x' = 1 \/ x' \in 3..5))
@@ -229,9 +229,9 @@ def example_win_set3():
             \/ (x = 4 /\ (y \in 1..3 \/ y = 5))
             \/ (x = 5 /\ (y \in 1..4)))
         '''
-        
+
     aut.action['env'] = r'''
-        \/ (y = 1 /\ y' = 1) 
+        \/ (y = 1 /\ y' = 1)
         \/ (y = 2 /\ (y' \in 2..3))
         \/ (y = 3 /\ (y' = 2\/ y' = 4))
         \/ (y = 4/\ (y' \in 3..4))
@@ -242,7 +242,7 @@ def example_win_set3():
     aut.qinit = r'\E \A'
     aut.moore = True
     aut.plus_one = True
-        
+
     return aut
 
 # Testing winning set specifications:
@@ -262,15 +262,15 @@ def example_win_set2():
     'X5 -> X (X4 || X2 || X3)',
     }
     sys_prog = set()
-    sys_prog |= {'X5'} 
-    
+    sys_prog |= {'X5'}
+
     env_vars = {}
     env_vars['T1'] = 'boolean'
     env_vars['T2'] = 'boolean'
     env_vars['T3'] = 'boolean'
     env_vars['T4'] = 'boolean'
-    env_vars['T5'] = 'boolean'   
-    
+    env_vars['T5'] = 'boolean'
+
     env_init = {'T2'}
     env_safe = {
     'T1 -> X (T1)',
@@ -279,10 +279,10 @@ def example_win_set2():
     'T4 -> X (T3 || T4)',
     'T5 -> X (T5)',
     }
-    env_prog = {} 
-    
+    env_prog = {}
+
     # @specs_setup_section_end@
-    
+
     sys_safe |= {'!(T1 && X1)'}
     sys_safe |= {'!(T2 && X2)'}
     sys_safe |= {'!(T3 && X3)'}
@@ -324,11 +324,11 @@ def example_win_set():
     }
     sys_prog = set()
     # sys_safe |= {'(x=5)<-> goal_reach'}
-    sys_prog |= {'x=5'} 
-    
+    sys_prog |= {'x=5'}
+
     env_vars = {}
     env_vars['t'] = (1, 5)
-    
+
     env_init = {'t=3'}
     env_safe = {
     't=1 -> X(t=1)',
@@ -337,10 +337,10 @@ def example_win_set():
     't=4 -> X(t=3)',
     't=5 -> X(t=5)',
     }
-    env_prog = {} 
-    
+    env_prog = {}
+
     # @specs_setup_section_end@
-    
+
     sys_safe |= {'!(t=1 && x=1)'}
     sys_safe |= {'!(t=2 && x=2)'}
     sys_safe |= {'!(t=3 && x=3)'}
@@ -366,7 +366,7 @@ def example_win_set():
     specs.qinit = r'\E \A'
     return specs
 
-# System and environment have been switched: 
+# System and environment have been switched:
 def specs_for_entire_track(tracklength):
     sys_vars = {}
     sys_vars['x'] = (0, tracklength) # 0: system is much behind the second tester car, 6: system is much further than the first tester car
@@ -374,7 +374,7 @@ def specs_for_entire_track(tracklength):
     sys_init = {'x='+str(0), 'y='+str(1)}
     sys_prog = {'y=2'} # Eventually, the system should merge
     sys_safe = set()
-    
+
     # Dynamics for merging into adjacent track:
     for ii in range(1,tracklength-1):
         sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
@@ -382,7 +382,7 @@ def specs_for_entire_track(tracklength):
     sys_safe |= {'x=0 -> X(x=0 && x=1)'}
     sys_safe |= {'x='+str(tracklength-1)+' -> X(x='+str(tracklength-1)+' && x='+str(tracklength)+')'}
     sys_safe |= {'x='+str(tracklength)+'-> X(x='+str(tracklength)+')'}
-    
+
     # testers
     tester_vars = {}
     tester_vars['x1'] = (1,tracklength)
@@ -394,7 +394,7 @@ def specs_for_entire_track(tracklength):
     for ki in range(1,tracklength-1):
         tester_prog |= {'((x='+str(ki+1)+') && (x1='+str(ki+2)+') && (x2='+str(ki)+')) && (y=2 && y1=2 && y2=2)'}
     tester_safe = set()
-    
+
     # No collision with other vehicles:
     for yi in range(1,3):
         for xi in range(0, tracklength+1):
@@ -407,9 +407,9 @@ def specs_for_entire_track(tracklength):
                 tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
                 tester_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
                 sys_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
-                
+
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
-    
+
     # Tester dynamics
     for ii in range(1,tracklength-1):
         tester_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
@@ -421,7 +421,7 @@ def specs_for_entire_track(tracklength):
     tester_safe |= {'(x1='+str(tracklength)+') -> X(x1='+str(tracklength)+')'}
     tester_safe |= {'(x1='+str(tracklength-1)+') -> X(x1='+str(tracklength-1)+' || x1='+str(tracklength)+')'}
     tester_safe |= {'(x2=0) -> X(x2=0 || x2=1)'}
-    
+
     # Terminal conditions: Once car merges, it remains merged.
     for xi in range(0,tracklength+1):
         for x1i in range(1,tracklength):
@@ -429,7 +429,7 @@ def specs_for_entire_track(tracklength):
                 other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
                 sys_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
                 tester_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
-    
+
     # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
@@ -485,13 +485,13 @@ def convert_bools(aut):
     aut.declare_variables(X3_as_int=(0, 1))
     aut.declare_variables(X4_as_int=(0, 1))
     aut.declare_variables(X5_as_int=(0, 1))
-    
+
     aut.declare_variables(T1_as_int=(0, 1))
     aut.declare_variables(T2_as_int=(0, 1))
     aut.declare_variables(T3_as_int=(0, 1))
     aut.declare_variables(T4_as_int=(0, 1))
     aut.declare_variables(T5_as_int=(0, 1))
-    
+
     y_X1 = aut.add_expr("X1")
     y_X2 = aut.add_expr("X2")
     y_X3 = aut.add_expr("X3")
@@ -515,20 +515,20 @@ def convert_bools(aut):
     t3_over_int = aut.add_expr(rf'\E T3:  (T3 <=> (T3_as_int = 1)) /\ {y_T3}')
     t4_over_int = aut.add_expr(rf'\E T4:  (T4 <=> (T4_as_int = 1)) /\ {y_T4}')
     t5_over_int = aut.add_expr(rf'\E T5:  (T5 <=> (T5_as_int = 1)) /\ {y_T5}')
-    
+
     ex_x1 = aut.to_expr(x1_over_int)
     ex_x2 = aut.to_expr(x2_over_int)
     ex_x3 = aut.to_expr(x3_over_int)
     ex_x4 = aut.to_expr(x4_over_int)
     ex_x5 = aut.to_expr(x5_over_int)
-    
+
     ex_t1 = aut.to_expr(t1_over_int)
     ex_t2 = aut.to_expr(t2_over_int)
     ex_t3 = aut.to_expr(t3_over_int)
     ex_t4 = aut.to_expr(t4_over_int)
     ex_t5 = aut.to_expr(t5_over_int)
 
-        
+
 def dump_graph_as_figure(g):
     """Create a PDF file showing the graph `g`."""
     h, _ = sym_enum._format_nx(g)
@@ -565,19 +565,19 @@ if __name__ == '__main__':
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
         # convert_bools(aut)
-        
+
     elif ex == 4:
         w_set = WinningSet()
         aut = example_win_set3()
-        
+
     elif ex==5: # Constructing abstraction for the merge example
-        ego_spec, test_spec = specs_for_entire_track(3)
-        gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to 
+        ego_spec, test_spec = specs_for_entire_track(10)
+        gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
         # invert the tester and the system
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
-        
+
     winning_set = w_set.find_winning_set(aut)
     pdb.set_trace()
     # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.

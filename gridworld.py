@@ -11,7 +11,7 @@ import numpy as np
 from scene import Scene
 from agent import Agent
 from map import Map
-from winning_set import WinningSet
+from winning_set import WinningSet, specs_for_entire_track, make_grspec
 import _pickle as pickle
 import os
 from copy import deepcopy
@@ -44,6 +44,9 @@ class GridWorld:
             self.turn = "env"
         self.terminal = False # This is when ego finally merges to cell 2; should be set to the ego agent tuple once merge is complete
         self.shield_dict = None
+        # self.w_set = None
+        self.aut, self.winning_set = self.synthesize_shield()
+
 
     '''-----Basic gridworld functions-----'''
 
@@ -65,7 +68,14 @@ class GridWorld:
         enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
         agent_list[i][1] = enabled_actions[action][0]
         agent_list[i][2] = enabled_actions[action][1]
-        return agent_list
+        # check if allowed by shield here
+        if self.check_if_state_in_winning_set(agent_list):
+            return agent_list
+        else:
+            st()
+            return None
+        # st()
+        # return agent_list
 
     def get_actions(self,agent,agent_list):
         '''get all possible actions for an agent from its position'''
@@ -81,6 +91,28 @@ class GridWorld:
             agent_y = agent.y - ego_y
         return (agent_x,agent_y)
 
+    def synthesize_shield(self):
+        ego_spec, test_spec = specs_for_entire_track(3)
+        gr_spec = make_grspec(test_spec, ego_spec)
+        w_set = WinningSet()
+        w_set.set_spec(gr_spec)
+        aut = w_set.make_compatible_automaton(gr_spec)
+        winning_set = w_set.find_winning_set(aut)
+        return aut, winning_set
+
+    def check_if_state_in_winning_set(self,agent_list):
+        st()
+        w_set = WinningSet()
+        state = self.map_to_state(agent_list)
+        #state = {'x': 1, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+        check_bdd = w_set.check_state_in_winset(self.aut, self.winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
+        if check_bdd:
+            # print("State is in the winning set")
+            return True
+        else:
+            # print("State is not in the winning set")
+            return False
+
     def load_shield(self): # pass spec to winning set analysis here
         if not self.shield_dict:
             w_set = WinningSet()
@@ -91,12 +123,22 @@ class GridWorld:
         self.mapping.update({(1,1): 's2_t'})
         self.mapping.update({(-1,0): 's0_t'})
 
+    def map_to_state(self, agentlist):
+        # automate this
+        statedict = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agentlist[0][1], 'y1': agentlist[0][2], 'x2': agentlist[1][1], 'y2': agentlist[1][2]}
+        return statedict
+
     def shield(self, enabled_actions):
-        if not self.shield_dict:
-            self.load_shield()
+        # st()
+        # if not self.shield_dict:
+        #     self.load_shield()
         # map state names to relative positions
-        rel_pos = self.get_relative_positions()
+        # rel_pos = self.get_relative_positions()
         # run enabled actions through dict
+
+        # find all children states of this state
+        # check if they are allowed in the shield
+
         ok_actions = self.shield_dict[self.mapping[rel_pos]]
         shielded_actions = dict()
         for action in ok_actions:
@@ -134,9 +176,10 @@ class GridWorld:
             if self.is_cell_free((act_x,act_y),agent_list) and act_y in range(1,3):
                 enabled_actions.update({action: (act_x,act_y)})
             enabled_actions.update({'stay': (x,y)})
-        shielded_actions = self.shield(enabled_actions)
-        st()
-        return shielded_actions
+        # st()
+        # shielded_actions = self.shield(enabled_actions)
+        # st()
+        return enabled_actions
 
     def enabled_actions(self,agent):
         '''Find possible actions for agent'''
@@ -242,7 +285,8 @@ class GridWorld:
                 for action in actions:
                     agent_list_copy = deepcopy(agent_list)
                     agent_list_copy = self.take_next_step(agent,action,agent_list_copy)
-                    list_of_agentlists_mod.append(agent_list_copy)
+                    if agent_list_copy is not None:
+                        list_of_agentlists_mod.append(agent_list_copy)
                 list_of_agentlists = list_of_agentlists_mod
         list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
         return list_of_gridworlds
