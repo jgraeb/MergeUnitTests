@@ -92,7 +92,8 @@ class GridWorld:
         return (agent_x,agent_y)
 
     def synthesize_shield(self):
-        ego_spec, test_spec = specs_for_entire_track(3)
+        track_length = 5
+        ego_spec, test_spec = specs_for_entire_track(track_length)
         gr_spec = make_grspec(test_spec, ego_spec)
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
