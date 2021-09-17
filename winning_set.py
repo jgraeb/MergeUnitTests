@@ -366,6 +366,55 @@ def example_win_set():
     specs.qinit = r'\E \A'
     return specs
 
+def all_system():
+    sys_vars = {}
+    sys_vars['x'] = (1, 3)
+    sys_vars['y'] = (1,2)
+    sys_init = {}#{'x='+str(1), 'y='+str(1)}
+    sys_prog = {'y=2'} # Eventually merge
+    sys_safe = set()
+    # Dynamics
+    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) && (x=2 && y=1) && (x=2 && y=2))'}
+    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) && (x=3 && y=1) && (x=3 && y=2))'}
+    sys_safe |= {'(x=3 && y=1) -> X(x=3 && y=1)'}
+    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) && (x=2 && y=2) && (x=2 && y=1))'}
+    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) && (x=3 && y=2) && (x=3 && y=1))'}
+    sys_safe |= {'(x=3 && y=2) -> X(x=3 && y=2)'}
+    # Testers
+    # tester_vars = {}
+    sys_vars['x1'] = (1,3)
+    # tester_vars['y1'] = (1,2)
+    # sys_init |= {'x1='+str(1)}#, 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
+    # tester_prog = set() # for now everything is ok
+    # tester_prog = {'(y=2)'}
+    # tester_safe = set()
+    # no collision
+    for ii in range(1,3+1):
+        # for jj in range(1,2+1):
+        sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= 2)'}
+            # sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+')'}
+            # sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= '+str(jj)+ ' && y2 = '+str(jj)+')'}
+            # tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+' && y1= '+str(jj)+ ' && y2 = '+str(jj)+')'}
+    # Dynamics
+    sys_safe |= {'(x1=1) -> X((x1=1) && (x1=2))'}
+    sys_safe |= {'(x1=2) -> X((x1=2) && (x1=3))'}
+    sys_safe |= {'(x1=3) -> X(x1=3)'}
+    # tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) && (x2=2 && y2=2))'}
+    # tester_safe |= {'(x2=2 && y2=2) -> X((x2=2 && y2=2) && (x2=3 && y2=2))'}
+    # tester_safe |= {'(x2=3 && y2=2) -> X(x2=3 && y2=2)'}
+    # Synthesize specs
+    tester_vars = {}
+    # tester_vars['y1'] = (1,2)
+    tester_init = {}#, 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
+    tester_prog = set() # for now everything is ok
+    # tester_prog = {'(y=2)'}
+    tester_safe = set()
+    #### HERE flippped again
+    test_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
+    ego_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
+    # st()
+    return ego_spec, test_spec
+
 def test_spec():
     sys_vars = {}
     sys_vars['x'] = (1, 3)
@@ -435,8 +484,8 @@ def spec_merge_in_front():
     # no collision
     for ii in range(1,3+1):
         for jj in range(1,2+1):
-            sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+')'}
-            tester_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+')'}
+            sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+ ')'}
+            tester_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+ ')'}
             # sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= '+str(jj)+ ' && y2 = '+str(jj)+')'}
             # tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+' && y1= '+str(jj)+ ' && y2 = '+str(jj)+')'}
     # Dynamics
@@ -736,7 +785,7 @@ if __name__ == '__main__':
         aut = example_win_set3()
 
     elif ex==5: # Constructing abstraction for the merge example
-        ego_spec, test_spec = spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
+        ego_spec, test_spec = all_system()#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
         # invert the tester and the system
         print(gr_spec.pretty())
@@ -748,7 +797,7 @@ if __name__ == '__main__':
     winning_set = w_set.find_winning_set(aut)
     # ipdb.set_trace()
     # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.
-    state = {'x': 1, 'y': 1, 'x1': 1}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+    state = {'x': 2, 'y': 2, 'x1': 3}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
     check_bdd = w_set.check_state_in_winset(aut, winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
     ipdb.set_trace()
     if check_bdd:
