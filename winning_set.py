@@ -64,6 +64,83 @@ class WinningSet:
     def set_spec(self, spec):
         self.spec = spec
 
+    def example_park(self):
+        from tulip import transys, spec, synth
+        # Create a finite transition system
+        sys = transys.FTS()
+
+        # Define the states of the system
+        sys.states.add_from(['X0', 'X1', 'X2', 'X3', 'X4', 'X5'])
+        sys.states.initial.add('X0')    # start in state X0
+
+        # Define the allowable transitions
+        #! TODO (IF): can arguments be a singleton instead of a list?
+        #! TODO (IF): can we use lists instead of sets?
+        #!   * use optional flag to allow list as label
+        sys.transitions.add_comb({'X0'}, {'X1', 'X3'})
+        sys.transitions.add_comb({'X1'}, {'X0', 'X4', 'X2'})
+        sys.transitions.add_comb({'X2'}, {'X1', 'X5'})
+        sys.transitions.add_comb({'X3'}, {'X0', 'X4'})
+        sys.transitions.add_comb({'X4'}, {'X3', 'X1', 'X5'})
+        sys.transitions.add_comb({'X5'}, {'X4', 'X2'})
+        # Add atomic propositions to the states
+        sys.atomic_propositions.add_from({'home', 'lot'})
+        sys.states.add('X0', ap={'home'})
+        sys.states.add('X5', ap={'lot'})
+        env_vars = {'park'}
+        env_init = set()                # empty set
+        env_prog = '!park'
+        env_safe = set()                # empty set
+        # Augment the system description to make it GR(1)
+        #! TODO: create a function to convert this type of spec automatically
+        sys_vars = {'X0reach'}          # infer the rest from TS
+        sys_init = {'X0reach'}
+        sys_prog = {'home'}             # []<>home
+        sys_safe = {'(X (X0reach) <-> lot) || (X0reach && !park)'}
+        sys_prog |= {'X0reach'}
+        # Create the specification
+        specs = spec.GRSpec(env_vars, sys_vars, env_init, sys_init, env_safe, sys_safe, env_prog, sys_prog)
+        # Moore machines
+        # controller reads `env_vars, sys_vars`, but not next `env_vars` values
+        specs.moore = True
+        # synthesizer should find initial system values that satisfy
+        # `env_init /\ sys_init` and work, for every environment variable
+        # initial values that satisfy `env_init`.
+        specs.qinit = '\E \A'
+        ctrl = synth.synthesize('omega', specs, sys=sys)
+        # assert ctrl is not None, 'unrealizable'
+        print(specs.pretty())
+        return specs
+
+    def test_fsm(self):
+        logger = logging.getLogger(__name__)
+
+        # Create a finite transition system
+        sys_sws = transys.FTS()
+        # add the states
+        sys_sws.states.add('s1')
+        sys_sws.states.add('s2')
+        sys_sws.states.add('s3')
+        sys_sws.states.add('s4')
+        # add the actions
+        # sys_sws.env_actions |= ['stay','move']
+        # sys_sws.sys_actions |= ['stay','move']
+        # add the transitions - manually currenty as mapped to abstract states
+        # sys_sws.transitions.add('s1_s','s1_t', env_actions='stay_s')
+        sys_sws.transitions.add('s1','s2')#, sys_actions='move')
+        sys_sws.transitions.add('s1','s1')#, sys_actions='stay')
+        sys_sws.transitions.add('s2','s3')#, env_actions='move')
+        sys_sws.transitions.add('s2','s2')#, env_actions='stay')
+        sys_sws.transitions.add('s3','s4')#, sys_actions='move')
+        sys_sws.transitions.add('s3','s3')#, sys_actions='stay')
+        sys_sws.transitions.add('s4','s4')
+        sys_sws.states.initial.add('s1')
+        # sys_sws.atomic_propositions.add_from({'goal'})
+        # sys_sws.states.add('s4', ap={'goal'})
+        print(sys_sws)
+        sys_sws.save('test_example.pdf')
+        return sys_sws
+
     def make_labeled_fsm(self):
         print('Making the abstracted FSM')
         logger = logging.getLogger(__name__)
@@ -110,8 +187,13 @@ class WinningSet:
         # sys_sws.states.initial.add('s2_s')
         # add the atomic propositions
         sys_sws.atomic_propositions.add_from({'goal'})
-        sys_sws.states.add('s0_s', ap={'goal'})
-        sys_sws.states.add('s0_t', ap={'goal'})
+        sys_sws.atomic_propositions.add_from({'sys_goal'})
+        sys_sws.states.add('s0_s', ap={'goal', 'sys_goal'})
+        sys_sws.states.add('s0_t', ap={'goal', 'sys_goal'})
+        sys_sws.states.add('s4_s', ap={'sys_goal'})
+        sys_sws.states.add('s4_t', ap={'sys_goal'})
+        sys_sws.states.add('s7_s', ap={'sys_goal'})
+        sys_sws.states.add('s7_t', ap={'sys_goal'})
         print(sys_sws)
         sys_sws.save('example_merge_in_front.pdf')
         return sys_sws
@@ -121,9 +203,11 @@ class WinningSet:
         statevar = 'state'
         spec = sys_to_spec(sys_sws, ignore_initial, statevar,bool_states=False, bool_actions=False)
         # spec.sys_prog.append('goal')
-        spec.env_prog.append('goal')
+        # spec.env_prog.append('sys_goal')
+        spec.sys_prog.append('state= "s4"')
         print(spec.pretty())
         return spec
+
 
     def make_compatible_automaton(self,spec):
         """
@@ -366,56 +450,66 @@ def example_win_set():
     specs.qinit = r'\E \A'
     return specs
 
-def all_system():
+def specs_for_track(tracklength):
     sys_vars = {}
-    sys_vars['x'] = (1, 3)
+    sys_vars['x'] = (1, tracklength)
     sys_vars['y'] = (1,2)
-    sys_init = {}#{'x='+str(1), 'y='+str(1)}
+    sys_init = {'x='+str(1), 'y='+str(1)}#,'x1='+str(2),'x1='+str(1)}
     sys_prog = {'y=2'} # Eventually merge
     sys_safe = set()
-    # Dynamics
-    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) && (x=2 && y=1) && (x=2 && y=2))'}
-    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) && (x=3 && y=1) && (x=3 && y=2))'}
-    sys_safe |= {'(x=3 && y=1) -> X(x=3 && y=1)'}
-    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) && (x=2 && y=2) && (x=2 && y=1))'}
-    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) && (x=3 && y=2) && (x=3 && y=1))'}
-    sys_safe |= {'(x=3 && y=2) -> X(x=3 && y=2)'}
+    # System Dynamics (stay,move,merge)
+    for ii in range(1,tracklength+1):
+        if not ii==tracklength:
+            sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii)+' && y=1) || (x='+str(ii+1)+' && y=1) || (x='+str(ii+1)+' && y=2))'}
+            sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii)+' && y=2) || (x='+str(ii+1)+' && y=2) || (x='+str(ii+1)+' && y=1))'}
+        else:
+            sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii)+' && y=1))'}
+            sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii)+' && y=2))'}
+
     # Testers
-    # tester_vars = {}
-    sys_vars['x1'] = (1,3)
-    # tester_vars['y1'] = (1,2)
-    # sys_init |= {'x1='+str(1)}#, 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
-    # tester_prog = set() # for now everything is ok
-    # tester_prog = {'(y=2)'}
-    # tester_safe = set()
-    # no collision
-    for ii in range(1,3+1):
-        # for jj in range(1,2+1):
-        sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= 2)'}
-            # sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= '+str(jj)+')'}
-            # sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= '+str(jj)+ ' && y2 = '+str(jj)+')'}
-            # tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+' && y1= '+str(jj)+ ' && y2 = '+str(jj)+')'}
-    # Dynamics
-    sys_safe |= {'(x1=1) -> X((x1=1) && (x1=2))'}
-    sys_safe |= {'(x1=2) -> X((x1=2) && (x1=3))'}
-    sys_safe |= {'(x1=3) -> X(x1=3)'}
-    # tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) && (x2=2 && y2=2))'}
-    # tester_safe |= {'(x2=2 && y2=2) -> X((x2=2 && y2=2) && (x2=3 && y2=2))'}
-    # tester_safe |= {'(x2=3 && y2=2) -> X(x2=3 && y2=2)'}
-    # Synthesize specs
     tester_vars = {}
-    # tester_vars['y1'] = (1,2)
-    tester_init = {}#, 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
-    tester_prog = set() # for now everything is ok
-    # tester_prog = {'(y=2)'}
+    tester_vars['x1'] = (1,tracklength)
+    tester_vars['x2'] = (1,tracklength)
+    tester_init = {'x1='+str(2),'x1='+str(1)}
+    # Never any collisions
     tester_safe = set()
-    #### HERE flippped again
-    test_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
-    ego_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
+    for ii in range(1,tracklength+1):
+        sys_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= 2)'}
+        sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= 2)'}
+        tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+')'}
+        tester_safe |= {'!(x='+str(ii)+' && x1 ='+str(ii)+' && y= 2)'}
+        tester_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= 2)'}
+
+    # Tester Dynamics - Constrained to lower lane for now
+    for ii in range(1,tracklength+1):
+        if not ii==tracklength:
+            tester_safe |= {'(x1='+str(ii)+') -> X((x1='+str(ii)+') || (x1='+str(ii+1)+'))'}
+            tester_safe |= {'(x2='+str(ii)+') -> X((x2='+str(ii)+') || (x2='+str(ii+1)+'))'}
+        else:
+            tester_safe |= {'(x1='+str(ii)+') -> X((x1='+str(ii)+'))'}
+            tester_safe |= {'(x2='+str(ii)+') -> X((x2='+str(ii)+'))'}
+
+    # Extra specs to make sure test satisfies the test spec
+    # Never a gap bigger than one
     # st()
+    for ii in range(1,tracklength-2):
+        # st()
+        for kk in range(ii+3,tracklength+1):
+            # st()
+            tester_safe |= {'!(x2='+str(ii)+' && x1='+str(kk)+')'}
+    # If diagonal cell free -> correct tester orientation
+    for ii in range(1,tracklength-2):
+        tester_safe |= {'(x='+str(ii)+' && !(x1='+str(ii+1)+' || x2='+str(ii+1)+')) -> (x1='+str(ii)+' && x2='+str(ii+2)+')'}
+
+    tester_init = {'x1='+str(2),'x1='+str(1)}
+    tester_prog = set()
+    tester_prog |= {'y=2'} # Eventually merge
+
+    ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
+    test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
 
-def test_spec():
+def test_spec_3cell():
     sys_vars = {}
     sys_vars['x'] = (1, 3)
     sys_vars['y'] = (1,2)
@@ -423,11 +517,11 @@ def test_spec():
     sys_prog = {'y=2'} # Eventually merge
     sys_safe = set()
     # Dynamics
-    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) && (x=2 && y=1) && (x=2 && y=2))'}
-    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) && (x=3 && y=1) && (x=3 && y=2))'}
+    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) || (x=2 && y=1) || (x=2 && y=2))'}
+    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) || (x=3 && y=1) || (x=3 && y=2))'}
     sys_safe |= {'(x=3 && y=1) -> X(x=3 && y=1)'}
-    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) && (x=2 && y=2) && (x=2 && y=1))'}
-    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) && (x=3 && y=2) && (x=3 && y=1))'}
+    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) || (x=2 && y=2) || (x=2 && y=1))'}
+    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) || (x=3 && y=2) || (x=3 && y=1))'}
     sys_safe |= {'(x=3 && y=2) -> X(x=3 && y=2)'}
     # Testers
     tester_vars = {}
@@ -446,11 +540,11 @@ def test_spec():
             sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= '+str(jj)+ ' && y2 = '+str(jj)+')'}
             tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+' && y1= '+str(jj)+ ' && y2 = '+str(jj)+')'}
     # Dynamics
-    tester_safe |= {'(x1=1 && y1=2) -> X((x1=1 && y1=2) && (x1=2 && y1=2))'}
-    tester_safe |= {'(x1=2 && y1=2) -> X((x1=2 && y1=2) && (x1=3 && y1=2))'}
+    tester_safe |= {'(x1=1 && y1=2) -> X((x1=1 && y1=2) || (x1=2 && y1=2))'}
+    tester_safe |= {'(x1=2 && y1=2) -> X((x1=2 && y1=2) || (x1=3 && y1=2))'}
     tester_safe |= {'(x1=3 && y1=2) -> X(x1=3 && y1=2)'}
-    tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) && (x2=2 && y2=2))'}
-    tester_safe |= {'(x2=2 && y2=2) -> X((x2=2 && y2=2) && (x2=3 && y2=2))'}
+    tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2))'}
+    tester_safe |= {'(x2=2 && y2=2) -> X((x2=2 && y2=2) || (x2=3 && y2=2))'}
     tester_safe |= {'(x2=3 && y2=2) -> X(x2=3 && y2=2)'}
     # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
@@ -467,18 +561,21 @@ def spec_merge_in_front():
     sys_prog = {'y=2'} # Eventually merge
     sys_safe = set()
     # Dynamics
-    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) && (x=2 && y=1) && (x=2 && y=2))'}
-    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) && (x=3 && y=1) && (x=3 && y=2))'}
+    sys_safe |= {'(x=1 && y=1) -> X((x=1 && y=1) || (x=2 && y=1) || (x=2 && y=2))'}
+    sys_safe |= {'(x=2 && y=1) -> X((x=2 && y=1) || (x=3 && y=1) || (x=3 && y=2)) '}
     sys_safe |= {'(x=3 && y=1) -> X(x=3 && y=1)'}
-    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) && (x=2 && y=2) && (x=2 && y=1))'}
-    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) && (x=3 && y=2) && (x=3 && y=1))'}
+    sys_safe |= {'(x=1 && y=2) -> X((x=1 && y=2) || (x=2 && y=2) || (x=2 && y=1))'}
+    sys_safe |= {'(x=2 && y=2) -> X((x=2 && y=2) || (x=3 && y=2) || (x=3 && y=1))'}
     sys_safe |= {'(x=3 && y=2) -> X(x=3 && y=2)'}
+    sys_safe |= {'(x1=1 -> X(x1=1))'}
+    sys_safe |= {'(x1=2 -> X(x1=2))'}
+    sys_safe |= {'(x1=3 -> X(x1=3))'}
     # Testers
     tester_vars = {}
     tester_vars['x1'] = (1,3)
     # tester_vars['y1'] = (1,2)
     tester_init = {'x1='+str(1)}#, 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
-    tester_prog = set() # for now everything is ok
+    tester_prog = {'y=2'}#set() # for now everything is ok
     # tester_prog = {'(y=2)'}
     tester_safe = set()
     # no collision
@@ -489,12 +586,15 @@ def spec_merge_in_front():
             # sys_safe |= {'!(x='+str(ii)+' && x2 ='+str(ii)+' && y= '+str(jj)+ ' && y2 = '+str(jj)+')'}
             # tester_safe |= {'!(x1='+str(ii)+' && x2 ='+str(ii)+' && y1= '+str(jj)+ ' && y2 = '+str(jj)+')'}
     # Dynamics
-    tester_safe |= {'(x1=1) -> X((x1=1) && (x1=2))'}
-    tester_safe |= {'(x1=2) -> X((x1=2) && (x1=3))'}
+    tester_safe |= {'(x1=1) -> X((x1=1) || (x1=2))'}
+    tester_safe |= {'(x1=2) -> X((x1=2) || (x1=3))'}
     tester_safe |= {'(x1=3) -> X(x1=3)'}
-    # tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) && (x2=2 && y2=2))'}
-    # tester_safe |= {'(x2=2 && y2=2) -> X((x2=2 && y2=2) && (x2=3 && y2=2))'}
-    # tester_safe |= {'(x2=3 && y2=2) -> X(x2=3 && y2=2)'}
+    tester_safe |= {'(x=1 -> X(x=1))'}
+    tester_safe |= {'(x=2 -> X(x=2))'}
+    tester_safe |= {'(x=3 -> X(x=3))'}
+    tester_safe |= {'(y=1 -> X(y=1))'}
+    tester_safe |= {'(y=2 -> X(y=2))'}
+
     # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
@@ -749,6 +849,75 @@ def dump_graph_as_figure(g):
     pd = nx.drawing.nx_pydot.to_pydot(h)
     pd.write_pdf('game_states.pdf')
 
+def check_all_states(tracklength, agentlist):
+    num_test_agents = len(agentlist)
+    if num_test_agents == 1:
+        for x in range(1,tracklength+1):
+            for y in range(1,2+1):
+                for x1 in range(1,tracklength+1):
+                    state = {'x': x, 'y': y, 'x1': x1}
+                    check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
+                    print(state)
+                    print(check_bdd)
+    elif num_test_agents ==2:
+        for x in range(1,tracklength+1):
+            for y in range(1,2+1):
+                for x1 in range(1,tracklength+1):
+                    for x2 in range(x1+1,tracklength+1):
+                        state = {'x': x, 'y': y, agentlist[0]: x1, agentlist[1]: x2, 'y1':2, 'y2':2}
+                        check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
+                        print(state)
+                        print(check_bdd)
+    else:
+        print('Too many agents')
+
+def get_state_dict(tracklength):
+    accepted_states = extract_accepted_states(tracklength)
+    accepted_rel_states = extract_relative_states(accepted_states)
+    return accepted_rel_states
+
+def extract_accepted_states(tracklength):
+    w_set = WinningSet()
+    ego_spec, test_spec = specs_for_entire_track(3)
+    gr_spec = make_grspec(test_spec, ego_spec)
+    w_set.set_spec(gr_spec)
+    aut = w_set.make_compatible_automaton(gr_spec)
+    winning_set = w_set.find_winning_set(aut)
+    accepted_states = []
+    for x in range(1,tracklength+1):
+        for y in range(1,2+1):
+            for x2 in range(1,tracklength+1):
+                for x1 in range(x2+1,tracklength+1):
+                    state = {'x': x, 'y': y, 'x1': x1, 'x2': x2, 'y1':2, 'y2':2}
+                    check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
+                    if check_bdd:
+                        accepted_states.append(state)
+    # print(accepted_states)
+    return accepted_states
+
+def extract_relative_states(statelist):
+    accepted_rel_states = []
+    for state in statelist:
+        # print(state)
+        t1 = state['x1']
+        t2 = state['x2']
+        sys_x = state['x']
+        sys_y = state['y']
+        #
+        rel1_x = t1-sys_x
+        rel2_x = t2-sys_x
+        rel_y = 2-sys_y
+        relstate = {'x':0,'y':0, 'x1':rel1_x, 'x2':rel2_x, 'y1':rel_y, 'y2': rel_y}
+        # print(relstate)
+        accepted_rel_states.append(relstate)
+    # print(accepted_rel_states)
+    return accepted_rel_states
+
+def create_shield():
+    accepted_rel_states = get_state_dict(3)
+    return accepted_rel_states
+
+
 if __name__ == '__main__':
     # testing winning set computation
     # define the specs here
@@ -757,13 +926,14 @@ if __name__ == '__main__':
     ex = 5 # Abstraction for the merge example
     if ex == 1:      # Simple FSM
         w_set = WinningSet()
-        fsm = w_set.make_labeled_fsm()
-        gr_spec = w_set.spec_from_fsm(fsm)
-        aut = w_set.make_compatible_automaton(gr_spec)
-        ctrl = synth.synthesize(gr_spec)
-        assert ctrl is not None, 'unrealizable'
-        specs.moore = True
-        specs.qinit = r'\E \A'
+        # fsm = w_set.make_labeled_fsm()
+        specs = w_set.example_park()
+        # gr_spec = w_set.spec_from_fsm(fsm)
+        aut = w_set.make_compatible_automaton(specs)
+        # ctrl = synth.synthesize(gr_spec)
+        # assert ctrl is not None, 'unrealizable'
+        # specs.moore = True
+        # specs.qinit = r'\E \A'
 
     elif ex == 2:     # Simple specification
         w_set = WinningSet()
@@ -785,7 +955,7 @@ if __name__ == '__main__':
         aut = example_win_set3()
 
     elif ex==5: # Constructing abstraction for the merge example
-        ego_spec, test_spec = all_system()#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
+        ego_spec, test_spec = specs_for_entire_track(3)#spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
         # invert the tester and the system
         print(gr_spec.pretty())
@@ -797,9 +967,15 @@ if __name__ == '__main__':
     winning_set = w_set.find_winning_set(aut)
     # ipdb.set_trace()
     # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.
-    state = {'x': 2, 'y': 2, 'x1': 3}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+    state = {'x': 1, 'y': 2, 'x1': 2, 'x2':3}#, 'x2': 2}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+    # state = {'X0'}
     check_bdd = w_set.check_state_in_winset(aut, winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
+    # check_all_states(3,['x1','x2'])
+
+    # accepted_rel_states = get_state_dict(3)
+
     ipdb.set_trace()
+
     if check_bdd:
         print("State is in the winning set")
     else:

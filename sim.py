@@ -101,8 +101,10 @@ def play_game():
     game_trace = [] # Same as ego_trace and env_trace condensed into one step with env going first
     k = 0 #  Time stamp
     # Initial step by environment:
-    for agent in gridworld.env_agents:
-        gridworld.env_take_step(agent,'move')
+    gridworld.env_take_step(gridworld.env_agents[0],'stay')
+    gridworld.env_take_step(gridworld.env_agents[0],'stay')
+    # for agent in gridworld.env_agents:
+    #     gridworld.env_take_step(agent,'move')
     for agent in gridworld.env_agents:
         append_trace(env_trace, agent)
         # trace = (gridworld,trace) # save first env action
@@ -127,7 +129,7 @@ def play_game():
         else:
             k = k+1
         gridworldnew = deepcopy(gridworld)
-        for k in range(500):
+        for k in range(50):
             #print("Rollout: ", str(k+1))
             tree.do_rollout(gridworldnew)
         gridworldnew = tree.choose(gridworldnew) # Env action
