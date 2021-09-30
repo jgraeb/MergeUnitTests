@@ -878,7 +878,7 @@ def get_state_dict(tracklength):
 
 def extract_accepted_states(tracklength):
     w_set = WinningSet()
-    ego_spec, test_spec = specs_for_entire_track(3)
+    ego_spec, test_spec = specs_for_entire_track(tracklength)
     gr_spec = make_grspec(test_spec, ego_spec)
     w_set.set_spec(gr_spec)
     aut = w_set.make_compatible_automaton(gr_spec)
@@ -955,11 +955,11 @@ if __name__ == '__main__':
         aut = example_win_set3()
 
     elif ex==5: # Constructing abstraction for the merge example
-        ego_spec, test_spec = specs_for_entire_track(3)#spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
+        tracklength = 10
+        ego_spec, test_spec = specs_for_entire_track(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
         # invert the tester and the system
         print(gr_spec.pretty())
-        # print(test_spec.pretty())
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
@@ -970,12 +970,8 @@ if __name__ == '__main__':
     state = {'x': 1, 'y': 2, 'x1': 2, 'x2':3}#, 'x2': 2}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
     # state = {'X0'}
     check_bdd = w_set.check_state_in_winset(aut, winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
-    # check_all_states(3,['x1','x2'])
 
-    # accepted_rel_states = get_state_dict(3)
-
-    ipdb.set_trace()
-
+    pdb.set_trace()
     if check_bdd:
         print("State is in the winning set")
     else:
