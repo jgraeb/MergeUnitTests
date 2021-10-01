@@ -20,7 +20,7 @@ import os
 from omega.games import enumeration as enum
 from omega.symbolic import enumeration as sym_enum
 from copy import deepcopy
-import ipdb
+import pdb
 from omega.games import gr1
 from omega.logic import syntax as stx
 from omega.symbolic import fixpoint as fx
@@ -470,7 +470,7 @@ def specs_for_track(tracklength):
     tester_vars = {}
     tester_vars['x1'] = (1,tracklength)
     tester_vars['x2'] = (1,tracklength)
-    tester_init = {'x1='+str(2),'x1='+str(1)}
+    tester_init = {'x1='+str(2),'x2='+str(1)}
     # Never any collisions
     tester_safe = set()
     for ii in range(1,tracklength+1):
@@ -680,7 +680,7 @@ def specs_for_entire_track_vMod(tracklength):
 def specs_for_entire_track(tracklength):
     # st()
     sys_vars = {}
-    sys_vars['x'] = (0, tracklength) # 0: system is much behind the second tester car, 6: system is much further than the first tester car
+    sys_vars['x'] = (0, tracklength) # 0: system is much behind the second tester car, tracklength+1: system is much further than the first tester car
     sys_vars['y'] = (1,2)
     sys_init = {'x='+str(0), 'y='+str(1)}
     sys_prog = {'y=2'} # Eventually, the system should merge
@@ -738,6 +738,82 @@ def specs_for_entire_track(tracklength):
     for xi in range(0,tracklength+1):
         for x1i in range(1,tracklength):
             for x2i in range(0,x1i):
+                other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
+                sys_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
+                tester_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
+
+    # Synthesize specs
+    ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
+    test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
+    # st()
+
+    return ego_spec, test_spec
+
+# System and environment have been switched:
+# Specs for the entire track with all cars starting in the initial position
+def specs_two_testers(tracklength):
+    # st()
+    sys_vars = {}
+    sys_vars['x'] = (1, tracklength) # 0: system is much behind the second tester car, tracklength+1: system is much further than the first tester car
+    sys_vars['y'] = (1,2)
+    sys_init = {'x='+str(1), 'y='+str(1)}
+    sys_prog = {'y=2'} # Eventually, the system should merge
+    sys_safe = set()
+
+    # Dynamics for merging into adjacent track:
+    for ii in range(1,tracklength-1):
+        sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
+        sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii+1)+' && y=2)||(x='+str(ii)+' && y=2)|| (x='+str(ii+1)+' && y=1))'}
+    # sys_safe |= {'x=0 -> X(x=0 && x=1)'}
+    sys_safe |= {'x='+str(tracklength-1)+' -> X(x='+str(tracklength-1)+' && x='+str(tracklength)+')'}
+    sys_safe |= {'x='+str(tracklength)+'-> X(x='+str(tracklength)+')'}
+
+    # testers
+    tester_vars = {}
+    tester_vars['x1'] = (2,tracklength)
+    tester_vars['y1'] = (1,2)
+    tester_vars['x2'] = (1,tracklength-1)
+    tester_vars['y2'] = (1,2)
+    tester_init = {'x1='+str(2), 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
+    tester_prog = set()
+    merge_spec = "(x=2 && x1=3 && x2=1)"
+    for ki in range(2,tracklength-1):
+        merge_spec += "|| (x = " + str(ki+1) + " && x1 = " + str(ki+2) + " && x2 = " + str(ki) + ")"
+    tester_prog |= {merge_spec}
+    tester_prog |= {'(y=2 && y1=2 && y2=2)'}
+    tester_safe = set()
+
+    # No collision with other vehicles:
+    for yi in range(1,3):
+        for xi in range(1, tracklength+1):
+            if xi!= tracklength:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                tester_safe |= {'!(x='+str(xi)+' && x2 ='+str(xi)+' && y= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                sys_safe |= {'!(x='+str(xi)+' && x2 ='+str(xi)+' && y= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+
+            if xi != 0:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                tester_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
+                sys_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
+
+    tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
+
+    # Tester dynamics
+    for ii in range(1,tracklength-1):
+        tester_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
+        tester_safe |= {'(x2='+str(ii)+' && y2=2) -> X((x2='+str(ii+1)+' && y2=2)||(x2='+str(ii)+' && y2=2)|| (x2='+str(ii+1)+' && y2=1))'}
+        tester_safe |= {'(x2='+str(ii)+' && y2=1) -> X((x2='+str(ii+1)+' && y2=1)||(x2='+str(ii)+' && y2=1)|| (x2='+str(ii+1)+' && y2=2))'}
+        tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
+    # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
+    tester_safe |= {'(x2='+str(tracklength-1)+') -> X(x2='+str(tracklength-1)+')'}
+    tester_safe |= {'(x1='+str(tracklength)+') -> X(x1='+str(tracklength)+')'}
+    tester_safe |= {'(x1='+str(tracklength-1)+') -> X(x1='+str(tracklength-1)+' || x1='+str(tracklength)+')'}
+    # tester_safe |= {'(x2=0) -> X(x2=0 || x2=1)'}
+
+    # Terminal conditions: Once car merges, it remains merged.
+    for xi in range(1,tracklength+1):
+        for x1i in range(2,tracklength):
+            for x2i in range(1,x1i):
                 other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
                 sys_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
                 tester_safe |= {'((y=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2))'}
@@ -849,7 +925,8 @@ def dump_graph_as_figure(g):
     pd = nx.drawing.nx_pydot.to_pydot(h)
     pd.write_pdf('game_states.pdf')
 
-def check_all_states(tracklength, agentlist):
+def check_all_states(tracklength, agentlist, w_set, aut):
+    winning_set = w_set.find_winning_set(aut)
     num_test_agents = len(agentlist)
     if num_test_agents == 1:
         for x in range(1,tracklength+1):
@@ -859,12 +936,13 @@ def check_all_states(tracklength, agentlist):
                     check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
                     print(state)
                     print(check_bdd)
+    # x2 < x1, since x2 is a second tester
     elif num_test_agents ==2:
         for x in range(1,tracklength+1):
             for y in range(1,2+1):
                 for x1 in range(1,tracklength+1):
-                    for x2 in range(x1+1,tracklength+1):
-                        state = {'x': x, 'y': y, agentlist[0]: x1, agentlist[1]: x2, 'y1':2, 'y2':2}
+                    for x2 in range(x1):
+                        state = {'x': x, 'y': y, agentlist[0]: x1, 'y1':2, agentlist[1]: x2, 'y2':2}
                         check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
                         print(state)
                         print(check_bdd)
@@ -888,7 +966,7 @@ def extract_accepted_states(tracklength):
         for y in range(1,2+1):
             for x2 in range(1,tracklength+1):
                 for x1 in range(x2+1,tracklength+1):
-                    state = {'x': x, 'y': y, 'x1': x1, 'x2': x2, 'y1':2, 'y2':2}
+                    state = {'x': x, 'y': y, 'x1': x1, 'y1':2, 'x2': x2, 'y2':2}
                     check_bdd = w_set.check_state_in_winset(aut, winning_set, state)
                     if check_bdd:
                         accepted_states.append(state)
@@ -923,7 +1001,7 @@ if __name__ == '__main__':
     # define the specs here
     # ego_spec, test_spec = simple_test_specs()
     # system
-    ex = 5 # Abstraction for the merge example
+    ex = 6 # Abstraction for the merge example
     if ex == 1:      # Simple FSM
         w_set = WinningSet()
         # fsm = w_set.make_labeled_fsm()
@@ -955,7 +1033,7 @@ if __name__ == '__main__':
         aut = example_win_set3()
 
     elif ex==5: # Constructing abstraction for the merge example
-        tracklength = 10
+        tracklength = 4
         ego_spec, test_spec = specs_for_entire_track(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
         # invert the tester and the system
@@ -963,11 +1041,25 @@ if __name__ == '__main__':
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
-
+        agentlist = ['x1', 'x2']
+        check_all_states(tracklength, agentlist, w_set, aut)
+        
+    elif ex==6: # Constructing abstraction for the merge example
+        tracklength = 10
+        ego_spec, test_spec = specs_two_testers(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
+        gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
+        # invert the tester and the system
+        print(gr_spec.pretty())
+        w_set = WinningSet()
+        w_set.set_spec(gr_spec)
+        aut = w_set.make_compatible_automaton(gr_spec)
+        agentlist = ['x1', 'x2']
+        check_all_states(tracklength, agentlist, w_set, aut)
+    
     winning_set = w_set.find_winning_set(aut)
-    # ipdb.set_trace()
+    # pdb.set_trace()
     # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.
-    state = {'x': 1, 'y': 2, 'x1': 2, 'x2':3}#, 'x2': 2}#, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
+    state = {'x': 2, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
     # state = {'X0'}
     check_bdd = w_set.check_state_in_winset(aut, winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
 
