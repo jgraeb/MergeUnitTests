@@ -44,11 +44,17 @@ class GridWorld:
             self.turn = "env"
         self.terminal = False # This is when ego finally merges to cell 2; should be set to the ego agent tuple once merge is complete
         self.shield_dict = None
+        self.allowed_tester_states, self.allowed_sys_states = self.find_allowed_states()
         # self.w_set = None
         # self.aut, self.winning_set = self.synthesize_shield()
 
 
     '''-----Basic gridworld functions-----'''
+    def find_allowed_states(self):
+        # call winning set here and save the states
+        allowed_tester_states = []
+        allowed_sys_states = []
+        return allowed_tester_states, allowed_sys_states
 
     def setup_world(self):
         '''Initializing the gridworld'''
@@ -80,6 +86,7 @@ class GridWorld:
         # state = {'x':,'y':,'x1':,'y1':, 'x2':, 'y2':}
         if check:
             if self.check_if_spec_is_fulfilled(agent_list):
+            # if self.check_if_state_is_allowed(agent_list): # uncomment this for winning set state check
                 # st()
                 return agent_list
             else:
@@ -93,8 +100,14 @@ class GridWorld:
         enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
         return enabled_actions
 
+    def check_if_state_is_allowed(self,agentlist): # Function to check for allowed states
+        state = {'x':self.ego_agents[0].x ,'y':self.ego_agents[0].y ,'x1':agentlist[0][1],'y1':agentlist[0][2], 'x2':agentlist[1][1], 'y2':agentlist[1][2]}
+        if state in self.allowed_sys_states:
+            return True
+        else:
+            return False
+
     def check_if_spec_is_fulfilled(self,agentlist):
-        # st()
         state = {'x':self.ego_agents[0].x ,'y':self.ego_agents[0].y ,'x1':agentlist[0][1],'y1':agentlist[0][2], 'x2':agentlist[1][1], 'y2':agentlist[1][2]}
         x = state['x']
         y = state['y']
@@ -102,15 +115,10 @@ class GridWorld:
         y1 = state['y1']
         x2 = state['x2']
         y2 = state['y2']
-        # st()
 
-        if (((x+1,y+1) == (x1,y1) or (x+1,y+1) == (x2,y2)) or (x==x2 and x+2==x1)) and x1<=x2+2:# and  x1<=x2+2:
-            # st()
-            # if (x==x2 and x+2==x1):
-                # print('A gap opened')
+        if (((x+1,y+1) == (x1,y1) or (x+1,y+1) == (x2,y2)) or (x==x2 and x+2==x1)) and x1<=x2+2:
             return True
         else:
-            # st()
             return False
 
 

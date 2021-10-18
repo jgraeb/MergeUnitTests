@@ -109,7 +109,8 @@ class Abstraction:
 if __name__ == '__main__':
     # actions passed from gridworld
     sys_actions = {'move': (1,0), 'stay': (0,0), 'mergeR': (1,1)} # possible actions for ego
-    tester_actions = {'move': (1,0), 'stay': (0,0)} # possible actions for each tester
+
+     # possible actions for each tester
 
     abs = Abstraction(2,3,sys_actions,tester_actions)
     abs.setup_abstraction()

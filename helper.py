@@ -21,9 +21,9 @@ def save_scene(gridworld,trace): # save each scene in trace
     ego_snapshot = []
     env_snapshot = []
     for agent in gridworld.ego_agents:
-        ego_snapshot.append((agent.name,agent.x,agent.y))
+        ego_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
     for agent in gridworld.env_agents:
-        env_snapshot.append((agent.name,agent.x,agent.y))
+        env_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
     current_scene = Scene(gridworld.timestep, gridworld.map, ego_snapshot, env_snapshot)
     trace.append(current_scene)
     gridworld.timestep += 1
