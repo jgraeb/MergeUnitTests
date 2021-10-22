@@ -8,7 +8,9 @@
 from random import choice
 # from mcts import MCTS, Node
 import numpy as np
-from scene import Scene
+# from scene import Scene
+import sys
+sys.path.append('..') # enable importing modules from an upper directory
 from agent import Agent
 from map import Map
 from helper import *
@@ -140,11 +142,8 @@ class GridWorld:
             orientationset = [str(ns),str(ew),str(ns)+str(ew)]
         return orientationset
 
-    def agent_take_step(self, agent, action):
-        pass
-
     def setup_simple_test(self):
-        self.find_actions_for_cell()
+        # self.find_actions_for_cell()
         agent = (7,4) # initial position
         list_of_agents = [('Agent1',4,0,'s', 'e'), ('Agent2',3,7,'w','w'),('Agent3', 3,6,'s','w'),('Agent4',0,3,'s','s'),('Agent5',4,1,'n','e')]
         self.ego_agents = [Agent(name='ego', x=agent[0],y=agent[1],v=0, goal='w', orientation = 'n')]
@@ -294,9 +293,20 @@ class GridWorld:
 
 
     def find_actions_for_cell(self):
-        for item in self.grid:
-            pass
-        pass
+        transitions_dict = {}
+        child_nodes = []
+        for key in self.grid:
+            # st()
+            child_nodes = []
+            cell_actions = self.grid[key]
+            for action in cell_actions:
+                if action in self.actions:
+                    new_x = key[0] + self.actions[action][0]
+                    new_y = key[1] + self.actions[action][1]
+                    child_nodes.append((new_x,new_y))
+            child_nodes.append((key[0],key[1])) # stay is always included
+            transitions_dict.update({key : child_nodes})
+        return transitions_dict
 
 
     def is_cell_free(self, cellxy, agent_list = None):
@@ -381,6 +391,18 @@ def run_intersection_gridworld():
     gw.setup_simple_test()
     gw.run_sim()
 
+def make_state_dictionary_for_specification():
+    """
+    Function which returns list of next possible cells for each cell in the grid.
+    """
+    print('Intersection Example')
+    intersectionfile = 'intersectionfile.txt'
+    gw = GridWorld([],intersectionfile)
+    gw.setup_simple_test()
+    transitions_dict = gw.find_actions_for_cell()
+    # print(transitions_dict)
+    return transitions_dict
+
 
 if __name__ == '__main__':
     output_dir = os.getcwd()+'/saved_traces/'
@@ -389,4 +411,6 @@ if __name__ == '__main__':
     filename = 'sim_trace.p'
     filepath = output_dir + filename
 
-    run_intersection_gridworld()
+    make_state_dictionary_for_specification()
+
+    # run_intersection_gridworld()
