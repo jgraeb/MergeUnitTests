@@ -37,8 +37,6 @@ def get_orientation(symb):
 
 class GridWorld:
     def __init__(self, initial_scene, intersectionfile, ego_agents=None, env_agents=None, turn=None):
-        # self.lanes = lanes    # Number of one direction lanes stacked
-        # self.width = width    # number of gridcells in a lane
         self.map = self.create_intersection_from_file(intersectionfile)
         self.road_nodes, self.non_road_nodes = self.get_road_cells()
         self.transitions = self.get_edges()
@@ -52,13 +50,10 @@ class GridWorld:
             self.env_agents = env_agents
         else:
             self.env_agents = [] # empty list of env agents in system
-        # self.actions = {'stay' : (0,0), 'n':(0,-1), 's':(0,1), 'e':(1,0), 'w':(-1,0)}
         self.actions = {'stay': (0,0), 'n': (-1,0), 's': (1,0), 'w': (0,-1), 'e': (0,1)}
         self.goals = {'n':(0,4), 'e':(4,7), 's':(7,3), 'w':(3,0)}
-        # self.actions = {'move': (1,0), 'stay': (0,0), 'turn': (1,1)} # possible actions for ego
         self.env_actions = {'move': (1,0), 'stay': (0,0)} # possible actions for each tester
         self.trace = []
-        # self.map = Map(lanes,width)
         self.timestep = 0
         # Game conditions of the MCTS:
         if turn is not None:
@@ -66,10 +61,7 @@ class GridWorld:
         else:
             self.turn = "env"
         self.terminal = False # This is when ego finally merges to cell 2; should be set to the ego agent tuple once merge is complete
-        # self.shield_dict = None
         self.orientation_set = ['←','→','↓','↑','+','⇠','⇢','⇣','⇡']
-        # self.w_set = None
-        # self.aut, self.winning_set = self.synthesize_shield()
 
 
     '''-----Basic gridworld functions-----'''
@@ -79,29 +71,22 @@ class GridWorld:
         lines = f.readlines()
         len_y = len(lines)
         for i,line in enumerate(lines):
-            # print(line)
             for j,item in enumerate(line):
-                # print(item)
                 if item != '\n':
-                    # print(item)
                     map[i,j] = item
         return map
 
     def get_road_cells(self):
-        # road_cells = []
         self.grid = od()
         non_road_nodes = []
         road_nodes = []
         for xy in self.map:
             if self.map[xy] == '*':
-                # symbol = '.'
                 non_road_nodes.append(xy)
             else:
-                # st()
                 orientation = self.get_direction(xy)
                 road_nodes.append(xy)
                 self.grid[xy[0],xy[1]] = orientation
-        # st()
         return road_nodes, non_road_nodes
 
     def get_edges(self):
@@ -155,41 +140,27 @@ class GridWorld:
             orientationset = [str(ns),str(ew),str(ns)+str(ew)]
         return orientationset
 
-    # def setup_grid():
-    #     self.create_intersection_from_file
-
     def agent_take_step(self, agent, action):
-
         pass
 
     def setup_simple_test(self):
         self.find_actions_for_cell()
-        # self.setup_grid()
         agent = (7,4) # initial position
         list_of_agents = [('Agent1',4,0,'s', 'e'), ('Agent2',3,7,'w','w'),('Agent3', 3,6,'s','w'),('Agent4',0,3,'s','s'),('Agent5',4,1,'n','e')]
         self.ego_agents = [Agent(name='ego', x=agent[0],y=agent[1],v=0, goal='w', orientation = 'n')]
         self.env_agents = [Agent(name=item[0], x=item[1],y=item[2],v=0, goal=item[3], orientation = item[4]) for item in list_of_agents]
         agents = self.ego_agents + self.env_agents
-        # self.trace = save_scene(self, self.trace)
         self.print_intersection(agents, self.timestep)
 
     def strategy(self,agent):
-        # st()
         agent_actions = self.enabled_actions(agent)
         acts = []
         for val in agent_actions.keys():
             acts.append(val)
 
-        # if agent.turn:
         if agent.goal in acts:
             return agent.goal
-        # else:
-        #     if str(agent.goal)+str(agent.orientation) in acts:
-        #         return str(agent.goal)+str(agent.orientation)
-        #     elif str(agent.orientation)+str(agent.goal) in acts:
-        #         return str(agent.orientation)+str(agent.goal)
         action = np.random.choice(acts)
-        # action = np.random.choice(acts)
         return action
 
     def run_sim(self):
@@ -199,21 +170,12 @@ class GridWorld:
             print('Step {}'.format(i))
             # environment takes step
             for agent in self.env_agents:
-                # agent_actions = self.enabled_actions(agent)
-                # acts = []
-                # for val in agent_actions.keys():
-                #     acts.append(val)
                 action = self.strategy(agent)
                 self.env_take_step(agent,action)
             agents = self.ego_agents + self.env_agents
             self.print_intersection(agents, self.timestep)
             # ego takes step
             for ego_agent in self.ego_agents:
-                # actions = self.enabled_actions(ego_agent)
-                # acts = []
-                # for val in actions.keys():
-                #     acts.append(val)
-                # st()
                 action = self.strategy(ego_agent)
                 self.agent_take_step(ego_agent, action)
             # save the scene
@@ -224,7 +186,6 @@ class GridWorld:
                     print('Goal reached')
                     # save the trace
                     print(self.trace)
-                    #import pdb; pdb.set_trace()
                     save_trace(filepath, self.trace)
                     return
         save_trace(filepath, self.trace)
@@ -264,12 +225,8 @@ class GridWorld:
         enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
         agent_list[i][1] = enabled_actions[action][0]
         agent_list[i][2] = enabled_actions[action][1]
-        # return agent_list
-        # check if allowed by shield here
-        # state = {'x':,'y':,'x1':,'y1':, 'x2':, 'y2':}
         if check:
             if self.check_if_spec_is_fulfilled(agent_list):
-                # st()
                 return agent_list
             else:
                 return None
@@ -309,7 +266,6 @@ class GridWorld:
             acts = {'stay': (x,y)}
             return acts
         actions = self.grid[(x,y)] # all possible actions
-        # st()
         allowed_acts = []
         if agent.orientation in actions:
             allowed_acts.append(agent.orientation)
@@ -334,12 +290,10 @@ class GridWorld:
             if self.is_cell_free((act_x,act_y)):
                 enabled_actions.update({action: (act_x,act_y)})
             enabled_actions.update({'stay': (x,y)}) # stay is always included
-        # st()
         return enabled_actions
 
 
     def find_actions_for_cell(self):
-        # st()
         for item in self.grid:
             pass
         pass
@@ -363,7 +317,6 @@ class GridWorld:
         return True
 
     def agent_take_step(self,agent,action):
-        # st()
         print('Agent chose {}'.format(action))
         '''Take the step for env, used for actually taking the actions during execution'''
         enabled_actions = self.enabled_actions(agent)
@@ -392,15 +345,6 @@ class GridWorld:
             x,y = enabled_actions['stay']
             agent.x = x
             agent.y = y
-    #
-    # def is_terminal(self):
-    #     '''Returns if the state is terminal'''
-    #     for agent in self.ego_agents:
-    #         if agent.y == agent.goal or agent.x == self.width:
-    #             self.terminal = True
-    #         else:
-    #             self.terminal = False
-    #     return self.terminal
 
     def print_intersection(self,agentdata, timestep):
         # save the scene
@@ -408,9 +352,7 @@ class GridWorld:
         print('Timestep '+str(timestep))
         k_old = 0
         line = ""
-        # st()
         agent_positions = [(agent.x,agent.y) for agent in agentdata]
-        # st()
         for item in self.map:
             k_new = item[0]
             if item in agent_positions:
@@ -432,7 +374,7 @@ def make_gridworld(agentdata,egodata):
     gi = GridWorld(2, 10, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
     return gi
 
-def make_intersection_gridworld():
+def run_intersection_gridworld():
     print('Intersection Example')
     intersectionfile = 'intersectionfile.txt'
     gw = GridWorld([],intersectionfile)
@@ -447,4 +389,4 @@ if __name__ == '__main__':
     filename = 'sim_trace.p'
     filepath = output_dir + filename
 
-    make_intersection_gridworld()
+    run_intersection_gridworld()
