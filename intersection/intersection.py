@@ -292,7 +292,7 @@ class GridWorld:
         return enabled_actions
 
 
-    def find_actions_for_cell(self):
+    def find_transitions_from_cell(self):
         transitions_dict = {}
         child_nodes = []
         for key in self.grid:
@@ -307,6 +307,22 @@ class GridWorld:
             child_nodes.append((key[0],key[1])) # stay is always included
             transitions_dict.update({key : child_nodes})
         return transitions_dict
+
+    def match_actions_to_transitions(self):
+        actions_dict = {}
+        child_nodes = []
+        for key in self.grid:
+            child_nodes = []
+            cell_actions = self.grid[key]
+            for action in cell_actions:
+                if action in self.actions:
+                    new_x = key[0] + self.actions[action][0]
+                    new_y = key[1] + self.actions[action][1]
+                    child_nodes.append((new_x,new_y,action))
+            child_nodes.append((key[0], key[1], 'stay')) # stay is always included
+            actions_dict.update({key : child_nodes})
+        return actions_dict
+
 
 
     def is_cell_free(self, cellxy, agent_list = None):
@@ -394,14 +410,20 @@ def run_intersection_gridworld():
 def make_state_dictionary_for_specification():
     """
     Function which returns list of next possible cells for each cell in the grid.
+
+    return values:
+    transitions_dict: Dictionary of states with list of child states
+    actions_dict: Dictionary of states with list of child states and matching actions
+
     """
     print('Intersection Example')
     intersectionfile = 'intersectionfile.txt'
     gw = GridWorld([],intersectionfile)
     gw.setup_simple_test()
-    transitions_dict = gw.find_actions_for_cell()
+    transitions_dict = gw.find_transitions_from_cell()
+    actions_dict = gw.match_actions_to_transitions()
     # print(transitions_dict)
-    return transitions_dict
+    return transitions_dict, actions_dict
 
 
 if __name__ == '__main__':
