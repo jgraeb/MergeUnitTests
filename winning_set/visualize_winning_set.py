@@ -22,16 +22,11 @@ s_init - Initial state for winning set computation and centered in the visualiza
 STATE_TRACE - List of states that is drawn on the polar lot.
 
 """
-shade_duplicate_states = True
+shade_duplicate_states = False
 show_example_trace = True
 draw_states_not_in_ws = False
 track_length = 4
-s_init = {'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'}
-STATE_TRACE = [{'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'},
-               {'sys': (1,1), 't1': (2,2), 't2': (3,2), 'turn': 's'},
-               {'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'},
-               {'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 's'},
-               {'sys': (3,2), 't1': (2,2), 't2': (4,2), 'turn': 't'}]
+
 
 def find_children_states(state):
     """
@@ -135,7 +130,7 @@ def ws_query_form(state):
     """
     return {'x': state['sys'][0], 'y': state['sys'][1], 'x1': state['t2'][0], 'y1': state['t2'][1], 'x2': state['t1'][0], 'y2': state['t1'][1]}
 
-def visualize_ws(states_in_winset):
+def visualize_ws(states_in_winset, num_generations, s_init):
     """
     Draw the polar plot to visualize the winning set from an initial condition.
     """
@@ -156,7 +151,7 @@ def visualize_ws(states_in_winset):
     r = 0
     c = ax.scatter(theta, r, c='b', s=22, cmap='hsv', alpha=0.75, zorder = 2)
     states = [s_init]
-    num_generations = 7
+    # num_generations = 7
     data = []
     data.append([s_init])
     for gen in range(1,num_generations):
@@ -188,8 +183,34 @@ def visualize_ws(states_in_winset):
             ax.plot((2 * np.pi * trace[i] / len(data[i]), 2 * np.pi * trace[i+1] / len(data[i+1])), (10*i, 10*(i+1)), c = 'silver', zorder = 1)
 
     # print(trace)
-    plt.show()
+    # plt.show()
+
+def print_receding_ws(states_in_winset_between, STATE_TRACE):
+    num_generations = 3
+    horizons = int(np.ceil((len(STATE_TRACE)-1)/2))
+    # st()
+    for plots in range(0,horizons):
+        num_generations = 3
+        visualize_ws(states_in_winset_between, num_generations, STATE_TRACE[plots*num_generations-1])
+    pass
+
+STATE_TRACE = [{'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'},
+               {'sys': (1,1), 't1': (2,2), 't2': (3,2), 'turn': 's'},
+               {'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'},
+               {'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 's'},
+               {'sys': (3,2), 't1': (2,2), 't2': (4,2), 'turn': 't'}]
 
 if __name__ == '__main__':
     states_in_winset_between, states_in_winset_front, states_in_winset_back = construct_win_sets(tracklength)
-    visualize_ws(states_in_winset_between)
+    s_init = {'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'}
+    # s_init = {'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'}
+    STATE_TRACE = [{'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'},
+                   {'sys': (1,1), 't1': (2,2), 't2': (3,2), 'turn': 's'},
+                   {'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'},
+                   {'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 's'},
+                   {'sys': (3,2), 't1': (2,2), 't2': (4,2), 'turn': 't'}]
+    num_generations = 3
+    visualize_ws(states_in_winset_between, num_generations, s_init)
+
+    # print_receding_ws(states_in_winset_between, STATE_TRACE)
+    plt.show()
