@@ -26,6 +26,7 @@ from ipdb import set_trace as st
 from tulip import transys, spec, synth
 from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, Spec
 import networkx as nx
+from networkx.algorithms.shortest_paths.generic import shortest_path_length
 
 # Merge example
 # Tracklength
@@ -113,11 +114,31 @@ def get_transitions_cross_product(trans1_dict, trans2_dict, prod_type="concurren
 
 # Function to define all possible states in the graph:
 def get_all_states(tracklength, ego_vars, tester_vars):
+    """
+    Parameters
+    ----------
+    tracklength : int
+        DESCRIPTION.
+    ego_vars : range of ego variables
+        DESCRIPTION.
+    tester_vars : range of tester variables
+        DESCRIPTION.
+
+    Returns
+    -------
+    G : TYPE
+        DESCRIPTION.
+    st2ver_dict : TYPE
+        DESCRIPTION.
+    ver2st_dict : TYPE
+        DESCRIPTION.
+    """
+    
     nstates = 2 * len(ego_vars)
     for ti_vars in tester_vars:
         nstates *= len(ti_vars)
     V = np.linspace(1, 1, nstates)
-    G = nx.graph((V,E))
+    G = nx.DiGraph()
     
     ego_T = get_agent_transitions(1, tracklength, ["x", "y"])
     test1_T = get_agent_transitions(2, tracklength, ["x1", "y1"])
@@ -130,7 +151,7 @@ def get_all_states(tracklength, ego_vars, tester_vars):
         si = list(states_ST.keys())[node]
         st2ver_dict.update({node: si})
         ver2st_dict.update({si: node})
-        V.add_node(node)
+        G.add_node(node)
         
     for si, val_i in states_ST.items():
         for fi in val_i:
@@ -138,13 +159,38 @@ def get_all_states(tracklength, ego_vars, tester_vars):
             fi_node = ver2st_dict[fi]
             G.add_edge(si_node, fi_node)
             
-    return G, V, E, st2ver_dict
+    return G, st2ver_dict, ver2st_dict
 
+# Add auxiliary nodes:
+def add_aux_nodes(G, goal_state_cond):
+    """
+    Parameters
+    ----------
+    G : networkx.DiGraph()
+        DESCRIPTION.
+    goal_state : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    G_aux = G.deepcopy()
+    target = "goal"
+    for vi in G.nodes():
+        if goal_state_cond(vi):
+            G_aux.add_edge(vi, target)
+    return G_aux, target
 
 # Function to get Wi_j, which is the set of all states that are j*horizon steps 
 # (1 step = 1 round of play) away from set from progress goal []<>i:
-def get_Wj(tracklength, goal_state, merge_setting, horizon):
-    
+def get_Wj(tracklength, G, st2ver_dict, ver2st_dict, goal_state, merge_setting, horizon):
+    G_aux, target = add_aux_nodes(G, goal_state)
+    node_dist = dict()
+    for node in list(G.nodes):
+        node_dist[nodes] = shortest_path_length(G_aux, node, target)
+        
     return Wj_set
 
 
