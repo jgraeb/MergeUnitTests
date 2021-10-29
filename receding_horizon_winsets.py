@@ -31,18 +31,120 @@ import networkx as nx
 # Tracklength
 tracklength = 5 
 
+# Function to get transitions of states:
+# Coordinate system, if an agent is in (x,y), they can transition to (x,y), (x+1, y) or (x+1, y+1)
+def get_map_transition(s, f):
+    edges = dict()
+    for yi in range(1,3):
+        for xi in range(s, f):
+            edges[(xi, yi)] = [(xi,yi), (xi+1, yi), (xi+1, yi+1)]
+         edges[(f, yi)] = [(f,yi)]
+    return edges
+
+# Get agent transitions: 
+def get_agent_transitions(s, f, agent_vars):
+    """
+    Parameters
+    ----------
+    s : int
+        Initial cell index where the track starts
+    f : int
+        Final cell index where the track ends
+    agent_vars : List[str]
+        List of the string variables defining the parameters for the agent.
+        ex: ['x', 'y'] for the system, ['x1', 'y1'] for the first tester and 
+        ['x2', 'y2'] for the second tester
+
+    Returns
+    -------
+    State transition dictionary
+    """
+    agent_transition_dict = dict()
+    transitions = get_map_transitions(s, f)
+    for k, v in transitions.items():
+        start_st = {agent_vars[0]: k[0], agent_vars[1]: k[1]}
+        for vi in v:
+            next_st = {agent_vars[0]: vi[0], agent_vars[1]: vi[1]}
+            agent_transition_dict[start_st] = next_st
+    return agent_transition_dict
+
+# Function to get crossproduct of transitions for different states:
+def get_transitions_cross_product(trans1_dict, trans2_dict, prod_type="concurrent"):
+    """
+    Parameters
+    ----------
+    trans1_dict : Dictionary of 1st agent transitions 
+    trans2_dict :Dictionary of 2nd agent transitions
+    prod_type : str, optional
+        Indicating which type of crossproduct needs to be performed: turn-based
+        (as in the case of system and env cross product) or concurrent 
+        (as in when taking the cross product of all tester variables).
+
+    Returns
+    -------
+    A single transition dictionary
+    """
+    product_dict = dict()
+    for s1, f1_list in trans1_dict.items():
+        for s2, f2_list in trans2_dict.items():
+            prod_key = {**s1, **s2} # Combining the states
+            product_dict[prod_key] = []
+            if prod_type == "concurrent":
+                for f1_i in f1_list:
+                    for f2_i in f2_list:
+                        prod_val = {**f1_i, **f2_i}
+                        if f1_i != f2_i: # Avoid collisions:
+                            product_dict[prod_key].append(prod_val)
+                            
+            elif prod_type == "turn-based":
+                for f1_i in f1_list:
+                    prod_val = {**f1_i, **s2}
+                    if f1_i != s2: # Avoid collisions:
+                        product_dict[prod_key].append(prod_val)
+                
+                for f2_i in f2_list:
+                    prod_val = {**f2_i, **s1}
+                    if f2_i != s1: # Avoid collisions:
+                        product_dict[prod_key].append(prod_val)
+
+            else:
+                assert prod_type == "concurrent" or prod_type == "turn-based"
+    return product_dict
+
 # Function to define all possible states in the graph:
-def get_all_states(ego_vars, tester_vars):
+def get_all_states(tracklength, ego_vars, tester_vars):
     nstates = 2 * len(ego_vars)
     for ti_vars in tester_vars:
         nstates *= len(ti_vars)
     V = np.linspace(1, 1, nstates)
-    
     G = nx.graph((V,E))
-    return G, V, E, st2ver_dict
     
-# Function to get Wi_j, which is the set of all states that are j*horizon steps (1 step = 1 round of play) away from set from progress goal []<>i:
+    ego_T = get_agent_transitions(1, tracklength, ["x", "y"])
+    test1_T = get_agent_transitions(2, tracklength, ["x1", "y1"])
+    test2_T = get_agent_transitions(1, tracklength-1, ["x2", "y2"])
+    
+    tester_T = get_transitions_cross_product(test1_T, test2_T, prod_type="concurrent")
+    states_ST = get_transitions_cross_product(tester_T, ego_T, prod_type="turn-based")
+    
+    for node in range(len(states_ST.keys())):
+        si = list(states_ST.keys())[node]
+        st2ver_dict.update({node: si})
+        ver2st_dict.update({si: node})
+        V.add_node(node)
+        
+    for si, val_i in states_ST.items():
+        for fi in val_i:
+            si_node = ver2st_dict[si]
+            fi_node = ver2st_dict[fi]
+            G.add_edge(si_node, fi_node)
+            
+    return G, V, E, st2ver_dict
+
+
+# Function to get Wi_j, which is the set of all states that are j*horizon steps 
+# (1 step = 1 round of play) away from set from progress goal []<>i:
 def get_Wj(tracklength, goal_state, merge_setting, horizon):
+    
     return Wj_set
 
 
@@ -61,6 +163,7 @@ def get_ego_safety(tracklength, merge_setting):
     for xi in range(1, tracklength-1):
         merge_if_possible = '(!(y1=2 && x1 = '+str(xi+1) +') && !(y2=2 && x2 = '+str(xi+1) +')) -> X(y=2 && x='+str(xi+1)+')'
         ego_safe |= {merge_if_possible}
+    
     # Last cell merge:
     merge_if_possible = '(!(y1=2 && x1 = '+str(tracklength) +')) -> X(y=2 && x='+str(tracklength)+')'
     ego_safe |= {merge_if_possible}
