@@ -53,7 +53,7 @@ def draw_timestamp(t):
     pass
 
 def draw_car(car_data):
-    if car_data[0]=='ego':
+    if car_data[0]=='system':
         color = 'red'
     else:
         color = 'blue'

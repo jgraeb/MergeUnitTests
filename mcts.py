@@ -7,6 +7,8 @@ https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import math
+from ipdb import set_trace as st
+from gridworld import GridWorld
 
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
@@ -17,6 +19,7 @@ class MCTS:
         self.children = dict()  # children of each node
         self.exploration_weight = exploration_weight
         self.max_cells = 10
+
     def choose(self, node):
         "Choose the best successor of node. (Choose a move in the game)"
         if node.is_terminal():
@@ -29,7 +32,6 @@ class MCTS:
             if self.N[n] == 0:
                 return float("-inf")  # avoid unseen moves
             return self.Q[n] / self.N[n]  # average reward
-
         return max(self.children[node], key=score)
 
     def do_rollout(self, node):
@@ -62,6 +64,7 @@ class MCTS:
         if node in self.children:
             return  # already expanded
         self.children[node] = node.find_children()
+
         #print("-------- End expand --------")
 
     def _simulate(self, node):
@@ -69,10 +72,12 @@ class MCTS:
         invert_reward = True
         while True:
             if node.is_terminal():
-                #print("---------- End Simulate ---------")
-                #print("Terminal state in simulate: ")
-                #print(node.print_state())
+                # print("---------- End Simulate ---------")
+                # print("Terminal state in simulate: ")
+                # print(node.print_state())
+                # st()
                 reward = node.reward()
+                # print(reward)
                 return self.max_cells - reward if invert_reward else reward
             node = node.find_random_child()
             invert_reward = not invert_reward
@@ -81,6 +86,10 @@ class MCTS:
     def _backpropagate(self, path, reward):
         "Send the reward back up to the ancestors of the leaf"
         for node in reversed(path):
+            # if reward == 0:
+            #     self.N[node] += 0
+            #     self.Q[node] += reward
+            # else:
             self.N[node] += 1
             self.Q[node] += reward
             reward = self.max_cells - reward  # 1 for me is 0 for my enemy, and vice versa
@@ -95,9 +104,12 @@ class MCTS:
 
         def uct(n):
             "Upper confidence bound for trees"
-            return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
-                log_N_vertex / self.N[n]
-            )
+            if self.N[n] == 0:
+                return 0
+            else:
+                return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
+                    log_N_vertex / self.N[n]
+                )
 
         return max(self.children[node], key=uct)
 
