@@ -149,10 +149,11 @@ def get_all_states():
     for i,state in enumerate(crossproduct_states):
         # vertex2state.update({i+1: state})
         # st()
-        sys_state2vertex.update({state: i+1})
-        test_state2vertex.update({state: i+1 + nstates})
+        sys_state2vertex.update({state: i + 1})
+        test_state2vertex.update({state: i + 1 + nstates})
     # Now loop through the states and create the edges
     edge_dict = dict()
+    # st()
     for state in crossproduct_states:
         # For each state depending on if it is a tester or system state, find the next state
         next_sys_states = find_next_sys_states(state_dict,state)
@@ -167,7 +168,7 @@ def get_all_states():
                 next_sys_vertices.append(sys_state2vertex[next_sys_state])
             except:
                 next_sys_vertices.append("offmap")
-        for next_test_state in next_sys_states:
+        for next_test_state in next_test_states:
             try:
                 next_test_vertices.append(test_state2vertex[next_test_state])
             except:
