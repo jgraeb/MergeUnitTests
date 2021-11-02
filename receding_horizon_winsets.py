@@ -162,35 +162,91 @@ def get_all_states(tracklength, ego_vars, tester_vars):
     return G, st2ver_dict, ver2st_dict
 
 # Add auxiliary nodes:
-def add_aux_nodes(G, goal_state_cond):
+def add_aux_nodes(G, ver2st_dict, goal_state_cond):
     """
     Parameters
     ----------
     G : networkx.DiGraph()
         DESCRIPTION.
-    goal_state : TYPE
-        DESCRIPTION.
+    goal_state_cond : lambda function that checks if a state is in the winning set
+        lambda function
 
     Returns
     -------
-    None.
+    G_aux (graph), and target (node)
 
     """
     G_aux = G.deepcopy()
     target = "goal"
     for vi in G.nodes():
-        if goal_state_cond(vi):
+        vi_st = ver2st_dict[vi]
+        if goal_state_cond(vi_st):
             G_aux.add_edge(vi, target)
     return G_aux, target
 
+# Get all states that satisfy the goal condition:
+def get_goal_states(G, goal_lambda, ver2st_dict):
+    """
+    Parameters
+    ----------
+    G : Graph
+        Graph connecting all nodes of the graph 
+    goal_lambda : Lambda function description 
+        Used to check which satisfy the lambda function.
+
+    Returns
+    -------
+    goal_states : List[dict[str]]
+        List of states that satisfy the goal condition
+        The states are given as a dictionary
+
+    """
+    goal_nodes = []
+    for k in list(G.nodes()):
+        k_st = ver2st_dict[k]
+        if goal_lambda(k_st):
+            goal_nodes.append(k)
+    return goal_nodes
+
+# Function to construct the lambda function for winning condition for the merge 
+# example:
+def construct_lambda_function(merge_setting):
+    if merge_setting == "between":
+        goal_lambda = lambda st: (st['y'] == 2 and st['y2'] == 2 and st['y1'] == 2) and (st['x'] == st['x1']-1 and st['x'] == st['x2']+1)
+    elif merge_setting == "front":
+        goal_lambda = lambda st: (st['y'] == 2 and st['y2'] == 2 and st['y1'] == 2) and (st['x'] == st['x1']+1 or st['x'] == st['x2']+1)
+    elif merge_setting == "back":
+        goal_lambda = lambda st: (st['y'] == 2 and st['y2'] == 2 and st['y1'] == 2) and (st['x'] == st['x1']-1 or st['x'] == st['x2']-1)
+    else:
+        print("Merge setting incorrect")
+        assert merge_setting in ["between", "front", "back"]
+    return goal_lambda
+
+# Function to collect Wj for each goal:
+# Depending on the goal, there is a different ordering of Wj's of for each goal i. 
+# This function returns a dictionary of the set of Wjs for each goal
+# Intuition: This is similar to specifying the terminal condition in MPC
+# Depending on states that satisfy the goal_lambda condition, those are added to the Wj_dict
+def get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, goal_lambda):
+    Wj_dict = dict()
+    goal_nodes = get_goal_states(G, goal_lambda, ver2st_dict)
+    for i in goal_nodes:
+        Wj_dict[i] = get_Wj(G, st2ver_dict, ver2st_dict, i)
+    return Wj_dict
+
 # Function to get Wi_j, which is the set of all states that are j*horizon steps 
 # (1 step = 1 round of play) away from set from progress goal []<>i:
-def get_Wj(tracklength, G, st2ver_dict, ver2st_dict, goal_state, merge_setting, horizon):
-    G_aux, target = add_aux_nodes(G, goal_state)
+def get_Wj(tracklength, G, st2ver_dict, ver2st_dict, goal):
+    # G_aux, target = add_aux_nodes(G, goal_state)
     node_dist = dict()
+    Wj_set = dict()
     for node in list(G.nodes):
-        node_dist[nodes] = shortest_path_length(G_aux, node, target)
-        
+        pl = shortest_path_length(G, node, goal)
+        node_dist[node] = shortest_path_length(G, node, goal)
+        if pl not in list(Wj_set.keys()):
+            Wj_set[pl] = [node]
+        else:
+            Wj_set[pl].append(node)
     return Wj_set
 
 
@@ -218,9 +274,9 @@ def get_ego_safety(tracklength, merge_setting):
     ego_safe |= {'(x1=2 && y1=2) -> X(x=1 && y=1)'}
     return ego_safe
 
-# Function to add progress properties of the jth specification:
-def add_psi_j_progress(tracklength, j, test_safe, merge_setting):
-    Wj = 
+# Function to add progress properties of the jth specification for the ith goal:
+def add_psi_i_j_progress(tracklength, i, j, test_safe, merge_setting):
+    goal_lambda = 
     return test_safe
 
 # Safety specifications for the test agent:
