@@ -34,15 +34,22 @@ tracklength = 5
 
 # Function to get transitions of states:
 # Coordinate system, if an agent is in (x,y), they can transition to (x,y), (x+1, y) or (x+1, y+1)
-def get_map_transition(s, f):
+def get_map_transition(s, f, agent):
     edges = dict()
-    for yi in range(1,3):
-        for xi in range(s, f):
-            if yi == 1:
-                edges[(xi, yi)] = [(xi,yi), (xi+1, yi), (xi+1, yi+1)]
-            else:
+    if agent == "ego": 
+        for yi in range(1,3):
+            for xi in range(s, f):
+                if yi == 1:
+                    edges[(xi, yi)] = [(xi,yi), (xi+1, yi), (xi+1, yi+1)]
+                else:
+                    edges[(xi, yi)] = [(xi,yi), (xi+1, yi)]
+            edges[(f, yi)] = [(f,yi)]
+            
+    else:
+        for yi in range(2,3):
+            for xi in range(s, f):          
                 edges[(xi, yi)] = [(xi,yi), (xi+1, yi)]
-        edges[(f, yi)] = [(f,yi)]
+            edges[(f, yi)] = [(f,yi)]
     return edges
 
 # Get agent transitions: 
@@ -64,9 +71,13 @@ def get_agent_transitions(s, f, agent_vars):
     State transition dictionary
     """
     agent_transition_dict = dict()
-    transitions = get_map_transition(s, f)
     agent_vars_dict = dict()
     checked_st = []
+    # pdb.set_trace()
+    if agent_vars[0]=='x' and agent_vars[1]=='y':
+        transitions = get_map_transition(s, f,"ego")
+    else:
+        transitions = get_map_transition(s, f,"tester")
     ki = 1
     for k, v in transitions.items():
         start_st = {agent_vars[0]: k[0], agent_vars[1]: k[1]}
@@ -115,7 +126,7 @@ def dict_equal(dict1, dict2):
     return flg
 
 # Function to get crossproduct of transitions for different states:
-def get_transitions_cross_product(trans1_dict, trans1_vars, trans2_dict, trans2_vars, prod_type="concurrent"):
+def get_transitions_cross_product_concurrent(trans1_dict, trans1_vars, trans2_dict, trans2_vars):
     """
     Parameters
     ----------
@@ -146,29 +157,67 @@ def get_transitions_cross_product(trans1_dict, trans1_vars, trans2_dict, trans2_
                 else:
                     prod_key_n = list(product_vars.keys())[list(product_vars.values()).index(prod_key)]
                 product_dict[prod_key_n] = []
-                if prod_type == "concurrent":
-                    for f1_i in f1_list:
-                        for f2_i in f2_list:
-                            prod_val = {**f1_i, **f2_i}
-                            if not dict_equal(f1_i, f2_i): # Avoid collisions:
-                                product_dict[prod_key_n].append(prod_val)
-                                
-                elif prod_type == "turn-based":
-                    # pdb.set_trace()
-                    for f1_i in f1_list:
-                        prod_val = {**f1_i, **s2}
-                        if not dict_equal(f1_i, s2): # Avoid collisions:
-                            product_dict[prod_key_n].append(prod_val)
-                    
+                for f1_i in f1_list:
                     for f2_i in f2_list:
-                        prod_val = {**f2_i, **s1}
-                        if not dict_equal(f2_i, s1): # Avoid collisions:
+                        prod_val = {**f1_i, **f2_i}
+                        if not dict_equal(f1_i, f2_i): # Avoid collisions:
                             product_dict[prod_key_n].append(prod_val)
-    
-                else:
-                    assert prod_type == "concurrent" or prod_type == "turn-based"
+                            
                 prod_key_n += 1
     return product_dict, product_vars
+
+# Get transitions cross-product fo turn-based settings:
+def get_transitions_cross_product_turn_based(trans1_dict, trans1_vars, trans2_dict, trans2_vars):
+    """
+    Parameters
+    ----------
+    trans1_dict : Dictionary of 1st agent (ego) transitions 
+    trans2_dict :Dictionary of 2nd agent (tester) transitions
+
+    Returns
+    -------
+    A single transition dictionary
+    """
+    product_dict_ego = dict()
+    product_dict_test = dict()
+    prod_key_n = 1
+    product_vars_ego = dict()
+    product_vars_test = dict()
+    checked_states_ego = []
+    checked_states_test = []
+    state_tracker = dict()
+    for s1_n, f1_list in trans1_dict.items():
+        for s2_n, f2_list in trans2_dict.items():
+            s1 = trans1_vars[s1_n]
+            s2 = trans2_vars[s2_n]
+            if not dict_equal(s1, s2): # Don't start in a collision state
+                prod_key = {**s1, **s2} # Combining the states
+                # pdb.set_trace()
+                product_vars_ego.update({prod_key_n: prod_key})
+                checked_states_ego.append(prod_key)
+                state_tracker[prod_key_n] = "s"
+                product_dict_ego[prod_key_n] = []
+                for f1_i in f1_list:
+                    prod_val = {**f1_i, **s2}
+                    if not dict_equal(f1_i, s2): # Avoid collisions:
+                        product_dict_ego[prod_key_n].append(prod_val)
+                prod_key_n += 1
+      
+    for s1_n, f1_list in trans1_dict.items():
+        for s2_n, f2_list in trans2_dict.items():
+            s1 = trans1_vars[s1_n]
+            s2 = trans2_vars[s2_n]
+            if not dict_equal(s1, s2): # Don't start in a collision state
+                product_vars_test.update({prod_key_n: prod_key})
+                checked_states_test.append(prod_key)
+                state_tracker[prod_key_n] = "t"
+                product_dict_test[prod_key_n] = []
+                for f2_i in f2_list:
+                    prod_val = {**f2_i, **s1}
+                    if not dict_equal(f2_i, s1): # Avoid collisions:
+                        product_dict_test[prod_key_n].append(prod_val)
+                prod_key_n += 1
+    return product_dict_ego, product_vars_ego, product_dict_test, product_vars_test, state_tracker
 
 # Function to define all possible states in the graph:
 def get_all_states(tracklength, ego_n, tester_n):
@@ -204,26 +253,42 @@ def get_all_states(tracklength, ego_n, tester_n):
     test1_T, test1_vars_T = get_agent_transitions(2, tracklength, ['x1', 'y1'])
     test2_T, test2_vars_T = get_agent_transitions(1, tracklength-1, ['x2', 'y2'])
     
-    tester_T, tester_vars_T = get_transitions_cross_product(test1_T, test1_vars_T, test2_T, test2_vars_T, prod_type="concurrent")
-    states_ST, states_vars_ST = get_transitions_cross_product(tester_T, tester_vars_T, ego_T, ego_vars_T, prod_type="turn-based")
-        
+    tester_T, tester_vars_T = get_transitions_cross_product_concurrent(test1_T, test1_vars_T, test2_T, test2_vars_T)
+    states_ST_ego, states_vars_ST_ego, states_ST_test, states_vars_ST_test, state_tracker = get_transitions_cross_product_turn_based(tester_T, tester_vars_T, ego_T, ego_vars_T)
+
+    # pdb.set_trace()
     st2ver_dict = dict()
     ver2st_dict = dict()
-    for node in range(len(states_ST.keys())):
-        si = list(states_vars_ST.keys())[node]
+    for node in range(len(states_ST_ego.keys())):
+        si = list(states_vars_ST_ego.keys())[node]
         st2ver_dict.update({si: node+1})
-        ver2st_dict.update({node+1: states_vars_ST[si]})
+        ver2st_dict.update({node+1: states_vars_ST_ego[si]})
         G.add_node(node+1)
-        
-    for si, val_i in states_ST.items():
+    
+    for node in range(len(states_ST_ego.keys()), len(states_ST_ego.keys()) + len(states_ST_test.keys())):
+        si = list(states_vars_ST_test.keys())[node - len(states_ST_ego.keys())]
+        st2ver_dict.update({si: node+1})
+        # pdb.set_trace()
+        assert(si  == node+1)
+        ver2st_dict.update({node+1: states_vars_ST_test[si]})
+        G.add_node(node+1)
+    
+    # pdb.set_trace()
+    for si, val_i in states_ST_ego.items():
         for fi in val_i:
             si_node = st2ver_dict[si]
-            fi_node = list(states_vars_ST.values()).index(fi) + 1
             # pdb.set_trace()
-            # fi_node = st2ver_dict[fi_n]
+            fi_node = list(states_vars_ST_ego.values()).index(fi) + 1
             G.add_edge(si_node, fi_node)
             
-    return G, st2ver_dict, ver2st_dict
+    for si, val_i in states_ST_test.items():
+        for fi in val_i:
+            si_node = st2ver_dict[si]
+            pdb.set_trace()
+            fi_node = list(states_vars_ST_test.values()).index(fi) + 1
+            G.add_edge(si_node, fi_node)
+    
+    return G, st2ver_dict, ver2st_dict, state_tracker
 
 # Add auxiliary nodes:
 def add_aux_nodes(G, ver2st_dict, goal_state_cond):
@@ -249,7 +314,7 @@ def add_aux_nodes(G, ver2st_dict, goal_state_cond):
     return G_aux, target
 
 # Get all states that satisfy the goal condition:
-def get_goal_states(G, goal_lambda, ver2st_dict):
+def get_goal_states(G, goal_lambda, ver2st_dict, state_tracker):
     """
     Parameters
     ----------
@@ -268,9 +333,10 @@ def get_goal_states(G, goal_lambda, ver2st_dict):
     goal_nodes = []
     for k in list(G.nodes):
         # pdb.set_trace()
-        k_st = ver2st_dict[k]
-        if goal_lambda(k_st):
-            goal_nodes.append(k)
+        if state_tracker[k] == "t": 
+            k_st = ver2st_dict[k]
+            if goal_lambda(k_st):
+                goal_nodes.append(k)
     return goal_nodes
 
 # Function to construct the lambda function for winning condition for the merge 
@@ -292,7 +358,7 @@ def construct_lambda_function(merge_setting):
 # This function returns a dictionary of the set of Wjs for each goal
 # Intuition: This is similar to specifying the terminal condition in MPC
 # Depending on states that satisfy the goal_lambda condition, those are added to the Wj_dict
-def get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, goal_lambda):
+def get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda):
     """
     Parameters
     ----------
@@ -314,7 +380,7 @@ def get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, goal_lambda):
 
     """
     Wj_dict = dict()
-    goal_nodes = get_goal_states(G, goal_lambda, ver2st_dict)
+    goal_nodes = get_goal_states(G, goal_lambda, ver2st_dict, state_tracker)
     for i in goal_nodes:
         Wj_dict[i] = get_Wj(tracklength, G, st2ver_dict, ver2st_dict, i)
     return Wj_dict
@@ -468,12 +534,12 @@ def specs_car_rh():
     
     tracklength = 10
     ego_n = 20
-    tester_n = 18*18
-    G, st2ver_dict, ver2st_dict = get_all_states(tracklength, ego_n, tester_n)
+    tester_n = 9*9
+    G, st2ver_dict, ver2st_dict, state_tracker = get_all_states(tracklength, ego_n, tester_n)
     merge_setting = "between"
     # pdb.set_trace()
     goal_lambda = construct_lambda_function(merge_setting)
-    Wij_dict = get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, goal_lambda)
+    Wij_dict = get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda)
     pdb.set_trace()
     ego_spec = ""
     test_spec = ""
