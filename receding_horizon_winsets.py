@@ -41,7 +41,7 @@ def get_map_transition(s, f):
             if yi == 1:
                 edges[(xi, yi)] = [(xi,yi), (xi+1, yi), (xi+1, yi+1)]
             else:
-                edges[(xi, yi)] = [(xi,yi), (xi+1, yi), (xi+1, yi-1)]
+                edges[(xi, yi)] = [(xi,yi), (xi+1, yi)]
         edges[(f, yi)] = [(f,yi)]
     return edges
 
@@ -82,6 +82,36 @@ def get_agent_transitions(s, f, agent_vars):
         ki += 1
     return agent_transition_dict, agent_vars_dict
 
+# Checking if the values of two dictionaries are equal:
+def dict_equal(dict1, dict2):
+    flg = False
+    l1 = len(dict1)
+    l2 = len(dict2)
+    agent_vars_dict1 = []
+    agent_vals_dict1 = []
+    agent_vars_dict2 = []
+    agent_vals_dict2 = []
+    for ii in range(int(l1/2)):
+        xi = 2*ii - 2
+        yi = 2*ii - 1
+        agent_vars_dict1.append((list(dict1.keys())[xi], list(dict1.keys())[yi]))
+        agent_vals_dict1.append((list(dict1.values())[xi], list(dict1.values())[yi]))
+        
+    for ii in range(int(l2/2)):
+        xi = 2*ii - 2
+        yi = 2*ii - 1
+        agent_vars_dict2.append((list(dict2.keys())[xi], list(dict2.keys())[yi]))
+        agent_vals_dict2.append((list(dict2.values())[xi], list(dict2.values())[yi]))
+    
+    common_idx = [ii for ii in range(len(agent_vals_dict1)) if agent_vals_dict1[ii] in agent_vals_dict2]
+    for cidx in common_idx:
+        dict2_cidx = [ii for ii in range(len(agent_vals_dict2)) if agent_vals_dict2[ii] == agent_vals_dict1[cidx]]
+        for c2idx in dict2_cidx:
+            if agent_vars_dict1[cidx] != agent_vars_dict2[c2idx]:
+                flg = True
+                return flg
+    return flg
+
 # Function to get crossproduct of transitions for different states:
 def get_transitions_cross_product(trans1_dict, trans1_vars, trans2_dict, trans2_vars, prod_type="concurrent"):
     """
@@ -117,18 +147,18 @@ def get_transitions_cross_product(trans1_dict, trans1_vars, trans2_dict, trans2_
                 for f1_i in f1_list:
                     for f2_i in f2_list:
                         prod_val = {**f1_i, **f2_i}
-                        if f1_i != f2_i: # Avoid collisions:
+                        if not dict_equal(f1_i, f2_i): # Avoid collisions:
                             product_dict[prod_key_n].append(prod_val)
                             
             elif prod_type == "turn-based":
                 for f1_i in f1_list:
                     prod_val = {**f1_i, **s2}
-                    if f1_i != s2: # Avoid collisions:
+                    if not dict_equal(f1_i, s2): # Avoid collisions:
                         product_dict[prod_key_n].append(prod_val)
                 
                 for f2_i in f2_list:
                     prod_val = {**f2_i, **s1}
-                    if f2_i != s1: # Avoid collisions:
+                    if not dict_equal(f2_i, s1): # Avoid collisions:
                         product_dict[prod_key_n].append(prod_val)
 
             else:
@@ -445,7 +475,7 @@ def specs_car_rh():
     pdb.set_trace()
     ego_spec = ""
     test_spec = ""
-    return ego_spec, test_spec
+    return ego_spec, test_spec, Wij_dict
 
 # Function to get all receding horizon winning sets:
 # tracklength: length of the track; merge_setting: between/ in front/ behind
