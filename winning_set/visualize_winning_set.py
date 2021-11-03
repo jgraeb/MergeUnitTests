@@ -26,6 +26,7 @@ shade_duplicate_states = False
 show_example_trace = True
 draw_states_not_in_ws = False
 track_length = 4
+show_children_of_non_ws_states = True
 
 
 def find_children_states(state):
@@ -64,7 +65,7 @@ def find_next_generation(states,trace, states_in_winset):
     """
     children = []
     for i,state in enumerate(states):
-        if not check_final(state) and composed_test_winset_query(ws_query_form(state), states_in_winset):
+        if not check_final(state):# and composed_test_winset_query(ws_query_form(state), states_in_winset):
             state_children = find_children_states(state)
             if i == trace[-1]:
                 # st()
@@ -169,7 +170,7 @@ def visualize_ws(states_in_winset, num_generations, s_init):
                     color = 'b'
             else:
                 color = 'silver'
-            if not draw_states_not_in_ws and color == 'silver' and gen in [3,4,5,6]:
+            if not draw_states_not_in_ws and color == 'silver' and gen in [4,5,6]:
                     continue
             else:
                 theta = 2 * np.pi * i / num_children
@@ -209,8 +210,8 @@ if __name__ == '__main__':
                    {'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'},
                    {'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 's'},
                    {'sys': (3,2), 't1': (2,2), 't2': (4,2), 'turn': 't'}]
-    num_generations = 3
-    visualize_ws(states_in_winset_between, num_generations, s_init)
+    num_generations = 7
+    visualize_ws(states_in_winset_back, num_generations, s_init)
 
     # print_receding_ws(states_in_winset_between, STATE_TRACE)
     plt.show()
