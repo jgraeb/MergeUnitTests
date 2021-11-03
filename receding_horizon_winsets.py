@@ -107,7 +107,9 @@ def dict_equal(dict1, dict2):
     for cidx in common_idx:
         dict2_cidx = [ii for ii in range(len(agent_vals_dict2)) if agent_vals_dict2[ii] == agent_vals_dict1[cidx]]
         for c2idx in dict2_cidx:
-            if agent_vars_dict1[cidx] != agent_vars_dict2[c2idx]:
+            # if l1 > 2 or l2 > 2:
+            #     pdb.set_trace()
+            if not (agent_vars_dict1[cidx] == agent_vars_dict2[c2idx]):
                 flg = True
                 return flg
     return flg
@@ -136,34 +138,36 @@ def get_transitions_cross_product(trans1_dict, trans1_vars, trans2_dict, trans2_
         for s2_n, f2_list in trans2_dict.items():
             s1 = trans1_vars[s1_n]
             s2 = trans2_vars[s2_n]
-            prod_key = {**s1, **s2} # Combining the states
-            if prod_key not in checked_states:
-                product_vars.update({prod_key_n: prod_key})
-                checked_states.append(prod_key)
-            else:
-                prod_key_n = list(product_vars.keys())[list(product_vars.values()).index(prod_key)]
-            product_dict[prod_key_n] = []
-            if prod_type == "concurrent":
-                for f1_i in f1_list:
-                    for f2_i in f2_list:
-                        prod_val = {**f1_i, **f2_i}
-                        if not dict_equal(f1_i, f2_i): # Avoid collisions:
+            if not dict_equal(s1, s2): # Don't start in a collision state
+                prod_key = {**s1, **s2} # Combining the states
+                if prod_key not in checked_states:
+                    product_vars.update({prod_key_n: prod_key})
+                    checked_states.append(prod_key)
+                else:
+                    prod_key_n = list(product_vars.keys())[list(product_vars.values()).index(prod_key)]
+                product_dict[prod_key_n] = []
+                if prod_type == "concurrent":
+                    for f1_i in f1_list:
+                        for f2_i in f2_list:
+                            prod_val = {**f1_i, **f2_i}
+                            if not dict_equal(f1_i, f2_i): # Avoid collisions:
+                                product_dict[prod_key_n].append(prod_val)
+                                
+                elif prod_type == "turn-based":
+                    # pdb.set_trace()
+                    for f1_i in f1_list:
+                        prod_val = {**f1_i, **s2}
+                        if not dict_equal(f1_i, s2): # Avoid collisions:
                             product_dict[prod_key_n].append(prod_val)
-                            
-            elif prod_type == "turn-based":
-                for f1_i in f1_list:
-                    prod_val = {**f1_i, **s2}
-                    if not dict_equal(f1_i, s2): # Avoid collisions:
-                        product_dict[prod_key_n].append(prod_val)
-                
-                for f2_i in f2_list:
-                    prod_val = {**f2_i, **s1}
-                    if not dict_equal(f2_i, s1): # Avoid collisions:
-                        product_dict[prod_key_n].append(prod_val)
-
-            else:
-                assert prod_type == "concurrent" or prod_type == "turn-based"
-            prod_key_n += 1
+                    
+                    for f2_i in f2_list:
+                        prod_val = {**f2_i, **s1}
+                        if not dict_equal(f2_i, s1): # Avoid collisions:
+                            product_dict[prod_key_n].append(prod_val)
+    
+                else:
+                    assert prod_type == "concurrent" or prod_type == "turn-based"
+                prod_key_n += 1
     return product_dict, product_vars
 
 # Function to define all possible states in the graph:
@@ -196,15 +200,13 @@ def get_all_states(tracklength, ego_n, tester_n):
     V = np.linspace(1, 1, nstates)
     G = nx.DiGraph()
     
-    ego_T, ego_vars_T = get_agent_transitions(1, tracklength, ["x", "y"])
-    test1_T, test1_vars_T = get_agent_transitions(2, tracklength, ["x1", "y1"])
-    test2_T, test2_vars_T = get_agent_transitions(1, tracklength-1, ["x2", "y2"])
+    ego_T, ego_vars_T = get_agent_transitions(1, tracklength, ['x', 'y'])
+    test1_T, test1_vars_T = get_agent_transitions(2, tracklength, ['x1', 'y1'])
+    test2_T, test2_vars_T = get_agent_transitions(1, tracklength-1, ['x2', 'y2'])
     
     tester_T, tester_vars_T = get_transitions_cross_product(test1_T, test1_vars_T, test2_T, test2_vars_T, prod_type="concurrent")
     states_ST, states_vars_ST = get_transitions_cross_product(tester_T, tester_vars_T, ego_T, ego_vars_T, prod_type="turn-based")
-    
-    # pdb.set_trace()
-    
+        
     st2ver_dict = dict()
     ver2st_dict = dict()
     for node in range(len(states_ST.keys())):
@@ -499,4 +501,4 @@ def get_winset_rh(tracklength, merge_setting, timestep, horizon):
 
 ## 
 if __name__ == '__main__':
-    ego_spec, test_spec = specs_car_rh()
+    ego_spec, test_spec, Vij = specs_car_rh()
