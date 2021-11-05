@@ -28,6 +28,7 @@ from correct_win_set import get_winset, WinningSet, make_grspec, check_all_state
 import networkx as nx
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
 
+
 # Merge example
 # Tracklength
 tracklength = 5 
@@ -456,10 +457,49 @@ def get_ego_safety(tracklength, merge_setting):
 
 # Function to add progress properties of the jth specification for the ith goal:
 # Keep separate goals for each winning set
-def add_psi_i_j_progress(tracklength, i, j, test_safe, merge_setting):
-    goal_lambda = construct_lambda_function(merge_setting)
+# i: goal
+# Vij_dict: Dictionary
+# j: Distance from the goal
+def add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker):
+    assumption = set()
+    prog_guarantee = set()
+    Vj = Vij_dict[j]
+    assert j%2 == 1 # Make sure j is odd
+    if j >= 5:
+        FVj = Vij_dict[j-4]
+    else:
+        FVj = Vij_dict[1]
     
-    return test_prog
+    assumption_spec = construct_spec_set_membership(Vj, ver2st_dict)
+    assumption |= {assumption_spec}
+    
+    prog_spec = construct_spec_set_membership(FVj, ver2st_dict)
+    prog_guarantee |= {prog_spec}
+    
+    return assumption, prog_guarantee
+
+# Define string for state specification:
+def get_str_spec(state_dict):
+    spec_state = ""
+    for k, v in state_dict.items():
+        if spec_state == "":
+            spec_state += "(" + k + " = " + str(v) 
+        else:
+            spec_state += " && " + k + " = " + str(v) 
+    spec_state += ")"
+    return spec_state
+    
+# Function to construct set membership:
+def construct_spec_set_membership(Vj, ver2st_dict):
+    spec = "("
+    for vj in Vj:
+        state_dict = ver2st_dict[vj]
+        if spec == "(":
+            spec += get_str_spec(state_dict)
+        else:
+            spec += " || " + get_str_spec(state_dict)
+    spec += ")"
+    return spec
 
 # Safety specifications for the test agent:
 def get_test_safety(tracklength, merge_setting):
@@ -547,7 +587,14 @@ def specs_car_rh():
     # pdb.set_trace()
     goal_lambda = construct_lambda_function(merge_setting)
     Wij_dict = get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda)
-    pdb.set_trace()
+    # pdb.set_trace()
+    for k in Wij_dict.keys():
+        jmax = len(Wij_dict[k]) - 1
+        for j in np.linspace(jmax, 0, jmax+1):
+            if j%2 == 1:
+                Vij_dict = Wij_dict[k]
+                assumption, prog_guarantee = add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker)
+                pdb.set_trace()
     ego_spec = ""
     test_spec = ""
     return ego_spec, test_spec, Wij_dict
