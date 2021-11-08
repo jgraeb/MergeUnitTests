@@ -570,7 +570,7 @@ def add_merge_specs(tracklength, merge_setting, test_safe):
 
 # Function to get all possible states in the graph of all system and environment transitions:
 def specs_car_rh(tracklength, merge_setting):
-    tracklength = 10
+    # tracklength = 10
     ego_vars = {}
     ego_vars['x'] = (1, tracklength)
     ego_vars['y'] = (1,2)
@@ -609,8 +609,12 @@ def get_winset_rh(tracklength, merge_setting, Wij_dict, state_tracker, ver2st_di
     # Get Wij_dict: The list of Vij
     # Existing safety, progress and init properties
     ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting) 
+    
+    # Check carefully! Initial conditions are empty.
     ego_spec.init = set()
     test_spec.init = set()
+    # Prog_guarantee and assumption are getting overwritten
+    # Modify here!
     for k in Vij_dict.keys():
         jmax = len(Vij_dict[k]) - 1
         for j in np.linspace(jmax, 0, jmax+1):
@@ -638,9 +642,15 @@ def get_winset_rh(tracklength, merge_setting, Wij_dict, state_tracker, ver2st_di
     states_in_winset, states_out_winset = check_all_states_in_winset(tracklength, agentlist, w_set, fp, aut, merge_setting)
     return states_in_winset
 
-## 
+## ToDo:
+# Add function to return viable tester states
+
 if __name__ == '__main__':
-    tracklength = 5
+    tracklength = 8
     merge_setting = "between"
+    # state_tracker: keeps track of all system and tester states
     ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
-    get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
+    # pdb.set_trace()
+    # states_in_winset returns only tester states in winset
+    # Modify here: Add function to simulate forward and get system states that only lead into the next winning set
+    states_in_winset = get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
