@@ -31,7 +31,14 @@ from networkx.algorithms.shortest_paths.generic import shortest_path_length
 
 # Merge example
 # Tracklength
-tracklength = 5 
+# tracklength = 5 
+
+class Spec:
+    def __init__(self,sys_vars,init,safety,progress):
+        self.variables = sys_vars
+        self.init = init
+        self.safety = safety
+        self.prog = progress
 
 # Function to get transitions of states:
 # Coordinate system, if an agent is in (x,y), they can transition to (x,y), (x+1, y) or (x+1, y+1)
@@ -518,6 +525,7 @@ def get_test_safety(tracklength, merge_setting):
         This function returns the dynamics of the test agents
 
     '''
+    test_safe = set()
     for ii in range(2,tracklength-1):
         test_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
         test_safe |= {'(x2='+str(ii)+' && y2=2) -> X((x2='+str(ii+1)+' && y2=2)||(x2='+str(ii)+' && y2=2)|| (x2='+str(ii+1)+' && y2=1))'}
@@ -561,13 +569,13 @@ def add_merge_specs(tracklength, merge_setting, test_safe):
     return test_safe
 
 # Function to get all possible states in the graph of all system and environment transitions:
-def specs_car_rh():
-    tracklength = 10
+def specs_car_rh(tracklength, merge_setting):
+    # tracklength = 10
     ego_vars = {}
     ego_vars['x'] = (1, tracklength)
     ego_vars['y'] = (1,2)
     ego_init = {'x='+str(1), 'y='+str(1)}
-    # ego_safe = get_ego_safety(tracklength, merge_setting)
+    ego_safe = get_ego_safety(tracklength, merge_setting)
     ego_prog = {'y=2'}
     
     test_vars = {}
@@ -576,8 +584,10 @@ def specs_car_rh():
     test_vars['y1'] = (1,2)
     test_vars['y2'] = (1,2)
     test_init = {'x1='+str(2), 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
-    # test_safe = get_test_safety(tracklength, merge_setting)
-    # test_safe = add_merge_specs(tracklength, merge_setting, test_safe)
+    test_safe = set()
+    test_safe = get_test_safety(tracklength, merge_setting)
+    test_safe = add_merge_specs(tracklength, merge_setting, test_safe)
+    test_prog = set()
     # test_prog = add_psi_j_progress(tracklength, j, merge_setting)
     
     ego_n = 2*tracklength
@@ -588,37 +598,59 @@ def specs_car_rh():
     goal_lambda = construct_lambda_function(merge_setting)
     Wij_dict = get_Wj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda)
     # pdb.set_trace()
-    for k in Wij_dict.keys():
-        jmax = len(Wij_dict[k]) - 1
-        for j in np.linspace(jmax, 0, jmax+1):
-            if j%2 == 1:
-                Vij_dict = Wij_dict[k]
-                assumption, prog_guarantee = add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker)
-                pdb.set_trace()
-    ego_spec = ""
-    test_spec = ""
-    return ego_spec, test_spec, Wij_dict
+    
+    ego_spec = Spec(ego_vars, ego_init, ego_safe, ego_prog)
+    test_spec = Spec(test_vars, test_init, test_safe, test_prog)
+    return ego_spec, test_spec, Wij_dict, state_tracker, ver2st_dict
 
 # Function to get all receding horizon winning sets:
 # tracklength: length of the track; merge_setting: between/ in front/ behind
-def get_winset_rh(tracklength, merge_setting, timestep, horizon):
-    ego_spec, test_spec = specs_car_rh(tracklength, merge_setting, timestep, horizon) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
-    gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
+def get_winset_rh(tracklength, merge_setting, Wij_dict, state_tracker, ver2st_dict):
+    # Get Wij_dict: The list of Vij
+    # Existing safety, progress and init properties
+    ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting) 
+    
+    # Check carefully! Initial conditions are empty.
+    ego_spec.init = set()
+    test_spec.init = set()
+    # Prog_guarantee and assumption are getting overwritten
+    # Modify here!
+    for k in Vij_dict.keys():
+        jmax = len(Vij_dict[k]) - 1
+        for j in np.linspace(jmax, 0, jmax+1):
+            if j%2 == 1:
+                Vij = Wij_dict[k]
+                assumption, prog_guarantee = add_psi_i_j_progress(Vij, j, ver2st_dict, state_tracker)
+    
     # print(gr_spec.pretty())
+    test_spec.prog |= prog_guarantee
+    ego_spec.safety |= assumption
+    gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
+
     w_set = WinningSet()
     w_set.set_spec(gr_spec)
-
+    
     aut = w_set.make_compatible_automaton(gr_spec)
     # g = synthesize_some_controller(aut) 
     agentlist = ['x1', 'x2']
     fp = w_set.find_winning_set(aut)
     # print("Printing states in fixpoint: ")
+    # pdb.set_trace()
     states_in_fp, states_out_fp = check_all_states_in_fp(tracklength, agentlist, w_set, fp, aut)
     print(" ")
     print("Printing states in winning set: ")
     states_in_winset, states_out_winset = check_all_states_in_winset(tracklength, agentlist, w_set, fp, aut, merge_setting)
     return states_in_winset
 
-## 
+## ToDo:
+# Add function to return viable tester states
+
 if __name__ == '__main__':
-    ego_spec, test_spec, Vij = specs_car_rh()
+    tracklength = 8
+    merge_setting = "between"
+    # state_tracker: keeps track of all system and tester states
+    ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
+    # pdb.set_trace()
+    # states_in_winset returns only tester states in winset
+    # Modify here: Add function to simulate forward and get system states that only lead into the next winning set
+    states_in_winset = get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
