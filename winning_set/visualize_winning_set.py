@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from comparing_win_sets import *
 from copy import deepcopy
+from receding_horizon_winset import specs_car_rh
 
 
 """
@@ -131,7 +132,58 @@ def ws_query_form(state):
     """
     return {'x': state['sys'][0], 'y': state['sys'][1], 'x1': state['t2'][0], 'y1': state['t2'][1], 'x2': state['t1'][0], 'y2': state['t1'][1]}
 
+def in_Vij(state, Vij_dict):
+    # st()
+    for key in Vij_dict.keys():
+        if state in Vij_dict[key]:
+            return True
+    return False
+
+def which_Vij(state, Vij_dict):
+    for key in Vij_dict.keys():
+        # st()
+        try:
+            if state in Vij_dict[key]:
+                return key
+        except:
+            st()
+
+
 def visualize_ws(states_in_winset, num_generations, s_init):
+    """
+    Load the receding horizon winning sets and store the goals in their vertex
+    representation.
+    """
+    _, _, Vij_dict, ver2st_dict, st2ver_dict = specs_car_rh()
+    goals = []
+    for key in Vij_dict.keys():
+        goals.append(key)
+    # st()
+
+    # make V_i_0 for the goal in cell 2
+    V_2_j_dict = dict()
+    V_2_j_dict.update({0: [{'sys': (2,2), 't1': (1,2), 't2': (3,2), 'turn': 't'}]})
+    V_2_j_dict.update({1: [{'sys': (1,1), 't1': (1,2), 't2': (3,2), 'turn': 's'}]})
+    V_2_j_dict.update({2: [{'sys': (1,1), 't1': (1,2), 't2': (3,2), 'turn': 't'}, {'sys': (1,1), 't1': (1,2), 't2': (2,2), 'turn': 't'}]})
+    # st()
+    # make V_i_0 for the goal in cell 3
+    V_3_j_dict = dict()
+    V_3_j_dict.update({0: [{'sys': (3,2), 't1': (2,2), 't2': (4,2), 'turn': 't'}]})
+    V_3_j_dict.update({1: [{'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 's'}]})
+    V_3_j_dict.update({2: [{'sys': (2,1), 't1': (2,2), 't2': (3,2), 'turn': 't'}, {'sys': (2,1), 't1': (2,2), 't2': (4,2), 'turn': 't'},{'sys': (2,1), 't1': (1,2), 't2': (3,2), 'turn': 't'}]})
+    V_3_j_dict.update({3: [{'sys': (1,1), 't1': (2,2), 't2': (3,2), 'turn': 's'}, {'sys': (1,1), 't1': (1,2), 't2': (3,2), 'turn': 's'}, {'sys': (1,1), 't1': (2,2), 't2': (4,2), 'turn': 's'}]})
+
+    cadmiumorange = '#FF6103'
+    chocolate1 = '#FF7F24'
+    flesh = '#FF7D40'
+    lightsalmon1 = '#FFA07A'
+    orangered1 = '#FF4500'
+    orange = '#FF8000'
+    orange1 = '#FFA500'
+    gold1 = '#FFD700'
+
+    colors = [orangered1, orange, orange1, gold1]
+
     """
     Draw the polar plot to visualize the winning set from an initial condition.
     """
@@ -163,21 +215,33 @@ def visualize_ws(states_in_winset, num_generations, s_init):
             if composed_test_winset_query(ws_query_form(child), states_in_winset):
                 if check_final(child):
                     color = 'deeppink'
+                    marker = "X"
                 elif duplicate(child, all_states) and shade_duplicate_states:
                     color = 'cornflowerblue'
+                    marker = "o"
                 else:
                     all_states = all_states + [child]
                     color = 'b'
+                    marker = "o"
+                # st()
+                # child_ver = st2ver_dict[child]
+                # marker = "o"
+                if in_Vij(child, V_3_j_dict):
+                    color = colors[which_Vij(child, V_3_j_dict)]
+                    marker = "^"
+                    if which_Vij(child, V_3_j_dict) == 0:
+                        marker = "*"
             else:
                 color = 'silver'
+                marker = "o"
             if not draw_states_not_in_ws and color == 'silver' and gen in [4,5,6]:
                     continue
             else:
                 theta = 2 * np.pi * i / num_children
                 offset = 2 * np.pi / num_children
                 r = 10*gen
-                area = 1/gen*22
-                c = ax.scatter(theta, r, c=color, s=area, cmap='hsv', alpha=0.75, zorder = 2)
+                area = 1/(gen*0.5)*22
+                c = ax.scatter(theta, r, c=color, s=area, cmap='hsv', alpha=0.75, zorder = 2, marker = marker)
             states = children
     if show_example_trace:
         for i in range(0,len(trace)-1):
