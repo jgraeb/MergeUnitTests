@@ -42,6 +42,7 @@ from tulip.synth import sys_to_spec
 import logging
 from tulip import transys, spec, synth
 import tulip.interfaces.omega as omega_intf
+from winset_constants import PRINT_STATES_IN_COMPUTATION
 
 class Spec:
     def __init__(self,sys_vars,init,safety,progress):
@@ -890,8 +891,9 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                 for x1 in range(1,tracklength+1):
                     state = {'x': x, 'y': y, 'x1': x1}
                     check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-                    print(state)
-                    print(check_bdd)
+                    if PRINT_STATES_IN_COMPUTATION:
+                        print(state)
+                        print(check_bdd)
     # x2 < x1, since x2 is a second tester
     elif num_test_agents ==2:
         for x in range(1,tracklength+1):
@@ -904,8 +906,9 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                             check_flg = check_st_A_int_G(state, tracklength, mode)
                             if check_flg:
                                 states_in_winset.append(state)
-                                print(state)
-                                print(check_bdd)
+                                if PRINT_STATES_IN_COMPUTATION:
+                                    print(state)
+                                    print(check_bdd)
                             else:
                                 states_outside_winset.append(state)
                         else:
