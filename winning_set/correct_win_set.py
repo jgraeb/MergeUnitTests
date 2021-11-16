@@ -736,7 +736,9 @@ def specs_car_merge_back(tracklength):
 
 # Check safety and progress requirements:
 # Check s |= A && G, and put states in winning states:
-# Check if there is a path from state to goal on G
+# Check if there is a path from state to goal on G, then proceed to check if it # satisfies the conditions on the merge problems:
+# i) The cell diagonally opposite is blocked by a tester car
+# ii) The cell diagonally opposite is free and if the car merges into the free # cell, it will be sandwiched by the two tester cars
 def check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G):
     x = state['x']
     y = state['y']
