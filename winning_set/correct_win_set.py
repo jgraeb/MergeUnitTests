@@ -23,6 +23,7 @@ from scene import Scene
 from agent import Agent
 from map import Map
 import networkx as nx
+from networkx import NetworkXNoPath
 from omega.symbolic import temporal as trl
 import pickle
 import os
@@ -51,6 +52,14 @@ class Spec:
         self.safety = safety
         self.prog = progress
 
+# Get key from a dictionary for a corresponding value:
+def get_dict_inv(dict_in, value):
+    key = ''
+    for k, v in dict_in.items():
+        if v == value:
+            key = k
+    return key
+
 # Get GRSpec:
 # Standard form controller synthesis of GR(1) specifications:
 # env_init & []env_safe & []<>env_prog --> sys_init & []sys_safe & []<>sys_prog
@@ -64,8 +73,7 @@ def make_grspec(sys_spec, env_spec):
     env_prog = env_spec.prog
     sys_prog = sys_spec.prog
 
-    specs = spec.GRSpec(env_vars, sys_vars, env_init, sys_init,
-                    env_safe, sys_safe, env_prog, sys_prog)
+    specs = spec.GRSpec(env_vars, sys_vars, env_init, sys_init,env_safe,    sys_safe, env_prog, sys_prog)
     specs.qinit = r'\A \E'
     specs.moore = False
     specs.plus_one = False
@@ -726,6 +734,43 @@ def specs_car_merge_back(tracklength):
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
 
+# Check safety and progress requirements:
+# Check s |= A && G, and put states in winning states:
+# Check if there is a path from state to goal on G, then proceed to check if it # satisfies the conditions on the merge problems:
+# i) The cell diagonally opposite is blocked by a tester car
+# ii) The cell diagonally opposite is free and if the car merges into the free # cell, it will be sandwiched by the two tester cars
+def check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G):
+    x = state['x']
+    y = state['y']
+    x1 = state['x1']
+    y1 = state['y1']
+    x2 = state['x2']
+    y2 = state['y2']
+    flg = False
+    goal_nodes = [g for g in goal_states]
+    for goal_node in goal_nodes:
+        # pdb.set_trace()
+        try:
+            spath = nx.shortest_path(G, state_node, goal_node)
+        except:
+            spath = []
+        if spath != []:
+            if x1 == tracklength:
+                spec = lambda x, y, x1, y1, x2, y2: ((x2==x or x2==x+1) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
+                flg = spec(x,y,x1,y1,x2,y2)
+            else:
+                # spec1: There is a car diagonally opposite front
+                spec1 = lambda x, y, x1, y1, x2, y2: ((x2==x+1) and (y==1) and (y2==2)) or ((x1==x+1) and (y==1) and (y1==2))
+                # spec2: the diagonally opposite cell is free to merge in between the specifications
+                spec2 = lambda x, y, x1, y1, x2, y2: ((x2==x) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
+                flg = spec1(x,y,x1,y1,x2,y2) or spec2(x,y,x1,y1,x2,y2)
+            spec_merged = lambda x, y, x1, y1, x2, y2: ((x2==x-1) and (x1==x2+2) and (y==2) and (y1==2) and (y2==2))
+            flg = flg or spec_merged(x,y,x1,y1, x2, y2)
+        if flg:
+            return flg
+
+    return flg
+
 # Check safety and progress assumptions:
 # Check s |= A && G, and only put those states that are in the winning set:
 def check_st_A_int_G(state, tracklength, mode):
@@ -741,7 +786,9 @@ def check_st_A_int_G(state, tracklength, mode):
             spec = lambda x, y, x1, y1, x2, y2: ((x2==x or x2==x+1) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
             flg = spec(x,y,x1,y1,x2,y2)
         else:
+            # spec1: There is a car diagonally opposite front
             spec1 = lambda x, y, x1, y1, x2, y2: ((x2==x+1) and (y==1) and (y2==2)) or ((x1==x+1) and (y==1) and (y1==2))
+            # spec2: the diagonally opposite cell is free to merge in between the specifications
             spec2 = lambda x, y, x1, y1, x2, y2: ((x2==x) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
             flg = spec1(x,y,x1,y1,x2,y2) or spec2(x,y,x1,y1,x2,y2)
         spec_merged = lambda x, y, x1, y1, x2, y2: ((x2==x-1) and (x1==x2+2) and (y==2) and (y1==2) and (y2==2))
@@ -894,6 +941,7 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                     if PRINT_STATES_IN_COMPUTATION:
                         print(state)
                         print(check_bdd)
+
     # x2 < x1, since x2 is a second tester
     elif num_test_agents ==2:
         for x in range(1,tracklength+1):
@@ -904,6 +952,48 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                         check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
                         if check_bdd:
                             check_flg = check_st_A_int_G(state, tracklength, mode)
+                            if check_flg:
+                                states_in_winset.append(state)
+                                if PRINT_STATES_IN_COMPUTATION:
+                                    print(state)
+                                    print(check_bdd)
+                            else:
+                                states_outside_winset.append(state)
+                        else:
+                            states_outside_winset.append(state)
+    else:
+        print('Too many agents')
+    return states_in_winset, states_outside_winset
+
+
+## Check if states are in winning set for receding horizon winning sets:
+# Filtering states in the winning set:
+def check_all_states_in_winset_rh(tracklength, agentlist, w_set, winning_set, aut, mode, state_test_dict, state_system_dict, goal_states, G, ver2st_dict):
+    # winning_set = w_set.find_winning_set(aut)
+    num_test_agents = len(agentlist)
+    states_in_winset = []
+    states_outside_winset = []
+    if num_test_agents == 1:
+        for x in range(1,tracklength+1):
+            for y in range(1,2+1):
+                for x1 in range(1,tracklength+1):
+                    state = {'x': x, 'y': y, 'x1': x1}
+                    check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+                    if PRINT_STATES_IN_COMPUTATION:
+                        print(state)
+                        print(check_bdd)
+
+    # x2 < x1, since x2 is a second tester
+    elif num_test_agents ==2:
+        for x in range(1,tracklength+1):
+            for y in range(1,2+1):
+                for x1 in range(1,tracklength+1):
+                    for x2 in range(1, x1):
+                        state = {'x': x, 'y': y, agentlist[0]: x1, 'y1':2, agentlist[1]: x2, 'y2':2}
+                        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+                        if check_bdd:
+                            state_node = get_dict_inv(ver2st_dict, state)
+                            check_flg = check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G)
                             if check_flg:
                                 states_in_winset.append(state)
                                 if PRINT_STATES_IN_COMPUTATION:

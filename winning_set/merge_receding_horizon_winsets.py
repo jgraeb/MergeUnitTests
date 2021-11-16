@@ -24,7 +24,7 @@ from tulip.synth import sys_to_spec
 import logging
 from ipdb import set_trace as st
 from tulip import transys, spec, synth
-from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, Spec
+from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
 import networkx as nx
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from winset_constants import PRINT_STATES_IN_COMPUTATION
@@ -282,7 +282,6 @@ def get_all_states(tracklength, ego_n, tester_n):
         ver2st_dict.update({node+1: states_vars_ST_test[si]})
         G.add_node(node+1)
 
-    # pdb.set_trace()
     for si, val_i in states_ST_ego.items():
         for fi in val_i:
             si_node = st2ver_dict[si]
@@ -295,7 +294,7 @@ def get_all_states(tracklength, ego_n, tester_n):
             fi_node = get_dict_inv(states_vars_ST_ego, fi)
             G.add_edge(si_node, fi_node)
 
-    return G, st2ver_dict, ver2st_dict, state_tracker
+    return G, st2ver_dict, ver2st_dict, state_tracker, states_vars_ST_test, states_vars_ST_ego
 
 # Function to get inverse mapping of a dictionary
 # whose values are a dictionary
@@ -484,7 +483,7 @@ def add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker):
     prog_spec = construct_spec_set_membership(FVj, ver2st_dict)
     prog_guarantee |= {prog_spec}
 
-    return assumption, prog_guarantee
+    return assumption, prog_guarantee, FVj
 
 # Define string for state specification:
 def get_str_spec(state_dict):
@@ -593,7 +592,7 @@ def specs_car_rh(tracklength, merge_setting):
 
     ego_n = 2*tracklength
     tester_n = (tracklength-1)**2
-    G, st2ver_dict, ver2st_dict, state_tracker = get_all_states(tracklength, ego_n, tester_n)
+    G, st2ver_dict, ver2st_dict, state_tracker, state_dict_test, state_dict_system = get_all_states(tracklength, ego_n, tester_n)
     merge_setting = "between"
     # pdb.set_trace()
     goal_lambda = construct_lambda_function(merge_setting)
@@ -602,11 +601,11 @@ def specs_car_rh(tracklength, merge_setting):
 
     ego_spec = Spec(ego_vars, ego_init, ego_safe, ego_prog)
     test_spec = Spec(test_vars, test_init, test_safe, test_prog)
-    return ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G
+    return ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G, state_dict_test, state_dict_system
 
 # Function to get all receding horizon winning sets:
 # tracklength: length of the track; merge_setting: between/ in front/ behind
-def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,ego_spec_orginal, test_spec_orginal):
+def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,ego_spec_orginal, test_spec_orginal, state_test_dict, state_system_dict, G):
     # Get Wij_dict: The list of Vij
     # Existing safety, progress and init properties
     # ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
@@ -626,7 +625,7 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
             # Vij = Vij_dict
             test_spec = deepcopy(test_spec_orginal)
             ego_spec = deepcopy(ego_spec_orginal)
-            assumption, prog_guarantee = add_psi_i_j_progress(Vij, j, ver2st_dict, state_tracker)
+            assumption, prog_guarantee, goal_states = add_psi_i_j_progress(Vij, j, ver2st_dict, state_tracker)
             test_spec.prog |= prog_guarantee
             ego_spec.safety |= assumption
 
@@ -648,7 +647,7 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
-            states_in_winset, states_out_winset = check_all_states_in_winset(tracklength, agentlist, w_set, fp, aut, merge_setting)
+            states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict)
             st()
             Wij.update({j: states_in_winset})
     # st()
@@ -666,12 +665,12 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
     j - distance to corresponding goal in steps
     k - index of the distance to the goal in j-1
     """
-    ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G = specs_car_rh(tracklength, merge_setting)
+    ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G, state_dict_test, state_dict_system = specs_car_rh(tracklength, merge_setting)
     Wijs = dict()
     # Go through all the goal states
     # st()
     for key in Vij_dict.keys():
-        Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec)
+        Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
         Wijs.update({key: Wj})
     # st()
     # Now find all the ks in each Wij
