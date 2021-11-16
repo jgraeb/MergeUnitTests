@@ -648,7 +648,7 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
                 print(" ")
                 print("Printing states in winning set: ")
             states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict)
-            st()
+            # st()
             Wij.update({j: states_in_winset})
     # st()
     return Wij
@@ -676,8 +676,10 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
     # Now find all the ks in each Wij
 
     # For each i, for each j in Wij - we can find the k (number to steps to j-1)
-    Wijk_vertex = deepcopy(Wijs)
+    # Wijk_vertex = deepcopy(Wijs)
+    Wijks = dict()
     for i in Wijs.keys():
+        Wjs = dict()
         for j in Wijs[i].keys():
             # Find intermediate goal state for this j, which is j-2
             if j > 2:
@@ -690,6 +692,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
             for goal in goals:
                 new_G.add_edge(goal, 'temp_goal')
             # Now go through all states in this Wj and order for k
+            Wk_dict_inv = dict()
             for state in Wijs[i][j]:
                 # find vertex number of the states
                 state_list = get_dict_inv_multiple(ver2st_dict, state)
@@ -702,9 +705,19 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
                     k = shortest_path_length(new_G, state_vertex, 'temp_goal')-1
                 except:
                     st()
-
-
-                st()
+                Wk_dict_inv.update({state_vertex: k})
+            # Now create the dictionary that maps to each k the list of states
+            Wks = dict()
+            unique_ks = set(Wk_dict_inv.values())
+            for k in unique_ks:
+                Wk = list()
+                for state in Wk_dict_inv.keys():
+                    if Wk_dict_inv[state] == k:
+                        Wk.append(state)
+                Wks.update({k: Wk})
+            Wjs.update({j: Wks})
+    Wijks.update({i: Wjs})
+    st()
 
     st()
     state = 1
