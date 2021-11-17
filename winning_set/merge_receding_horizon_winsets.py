@@ -24,10 +24,18 @@ from tulip.synth import sys_to_spec
 import logging
 from ipdb import set_trace as st
 from tulip import transys, spec, synth
-from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
+try:
+    from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
+except:
+    from winning_set.correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
+
 import networkx as nx
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
-from winset_constants import PRINT_STATES_IN_COMPUTATION
+
+try:
+    from winset_constants import PRINT_STATES_IN_COMPUTATION
+except:
+    from winning_set.winset_constants import PRINT_STATES_IN_COMPUTATION
 
 
 # Merge example
@@ -652,7 +660,7 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
             start_set = Vij[j]
 
             states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
-            st()
+            # st()
             Wij.update({j: states_in_winset})
     # st()
     return Wij
@@ -670,21 +678,21 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
     k - index of the distance to the goal in j-1
     """
     ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G, state_dict_test, state_dict_system = specs_car_rh(tracklength, merge_setting)
-    Wijs = dict()
+    Wij = dict()
     # Go through all the goal states
     # st()
     for key in Vij_dict.keys():
         Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
-        Wijs.update({key: Wj})
+        Wij.update({key: Wj})
     # st()
     # Now find all the ks in each Wij
 
     # For each i, for each j in Wij - we can find the k (number to steps to j-1)
     # Wijk_vertex = deepcopy(Wijs)
     Wijks = dict()
-    for i in Wijs.keys():
+    for i in Wij.keys():
         Wjs = dict()
-        for j in Wijs[i].keys():
+        for j in Wij[i].keys():
             # Find intermediate goal state for this j, which is j-2
             if j > 2:
                 goals = Vij_dict[i][j-2]
@@ -697,7 +705,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
                 new_G.add_edge(goal, 'temp_goal')
             # Now go through all states in this Wj and order for k
             Wk_dict_inv = dict()
-            for state in Wijs[i][j]:
+            for state in Wij[i][j]:
                 # find vertex number of the states
                 state_list = get_dict_inv_multiple(ver2st_dict, state)
                 for ver in state_list:
@@ -720,48 +728,57 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
                         Wk.append(state)
                 Wks.update({k: Wk})
             Wjs.update({j: Wks})
-        Wijks.update({i: Wjs})
-    st()
+            Wijks.update({i: Wjs})
+    # st()
 
-    st()
-    state = 1
-    in_ws = check_system_states_in_winset(state, ver2st_dict, state_tracker, Wijk)
-
-    st()
+    # st()
+    # state = 1
+    # in_ws = check_system_states_in_winset(state, ver2st_dict, state_tracker, Wijk)
+    #
+    # st()
+    return Wij, Vij_dict, state_tracker, ver2st_dict
 
 def check_if_state_in_winset(state):
     pass
 
 
-def check_system_states_in_winset(state, ver2st_dict, state_tracker, Wijk):
+def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij):
+    # st()
     next_states = find_next_states(state, ver2st_dict, state_tracker)
+
+    # Find the next states in vertex represenation - probably not necessary
     next_states_ver = []
     for state in next_states:
         vertices = get_dict_inv_multiple(ver2st_dict, state)
         for vertex in vertices:
             if state_tracker[vertex] == 't':
                 next_states_ver.append(vertex)
-    # Find if all of these states are in Wijk
-    st()
-    for W_i in Wijk:
-        for W_ij in W_i:
-            for W_ijk in W_ij:
-                # check if state is in the winning set
-                for next_state in next_states_ver:
-                    if next_state not in W_ijk:
-                        return False
-    return True
+
+    # Find if all of these states are in Wij
+    # st()
+    # Find j or original state for each i and compare to that value for all new states
+    progress = False
+    for i in Wij:
+        for j in Wij[i]:
+            # check if state is in the winning set
+            if origin_state in Wij[i][j]:
+                j_original = j
+            for next_state in next_states:
+                if next_state in Wij[i][j]:
+                    j_next = j
+        if j_next <= j_original:
+            progress = True
+    return progress
 
 
 
-def find_next_states(ver_state, ver2st_dict, state_tracker):
+def find_next_states(state, ver2st_dict, state_tracker):
     """
     Propagate forward to check if the system state is in the winning set.
     """
-    print("checking if state in winset")
-    # st()
-    # find sys state in dict form
-    state = ver2st_dict[ver_state]
+    # find sys state in dict form if given as vertex
+    if not isinstance(state,dict):
+        state = ver2st_dict[state]
     x = state['x']
     y = state['y']
     tester_states = [(state['x1'],state['y1']),(state['x2'],state['y2'])]
@@ -808,4 +825,12 @@ if __name__ == '__main__':
     # # states_in_winset returns only tester states in winset
     # # Modify here: Add function to simulate forward and get system states that only lead into the next winning set
     # states_in_winset = get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
-    get_tester_states_in_winsets(tracklength, merge_setting)
+    Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(tracklength, merge_setting)
+    # st()
+    origin_state = {'x': 1, 'y': 1, 'x1': 2, 'y1': 2, 'x2': 1, 'y2': 2} # 43
+
+    state = {'x': 1, 'y': 1, 'x1': 3, 'y1': 2, 'x2': 1, 'y2': 2}
+    in_ws = check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij)
+
+    st()
+    print('end')

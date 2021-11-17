@@ -1,15 +1,15 @@
 class Agent:
-    def __init__(self, name, x, y, v, goal, orientation):
+    def __init__(self, name, x, y, v, goal):#, orientation):
         self.name = name
         self.x = x
         self.y = y
         self.v = v
         self.goal = goal
-        self.orientation = orientation
-        if self.orientation == self.goal:
-            self.turn = True
-        else:
-            self.turn = False
+        self.orientation = 0
+        # if self.orientation == self.goal:
+        #     self.turn = True
+        # else:
+        #     self.turn = False
     #
     def step_forward(self):
         self.x = self.x + 1

@@ -11,11 +11,12 @@ import numpy as np
 from scene import Scene
 from agent import Agent
 from map import Map
-from winning_set import WinningSet, specs_for_entire_track, make_grspec, create_shield
+from winning_set.winning_set import WinningSet, specs_for_entire_track, make_grspec, create_shield
 import _pickle as pickle
 import os
 from copy import deepcopy
 from ipdb import set_trace as st
+from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
 
 
 class GridWorld:
@@ -47,6 +48,7 @@ class GridWorld:
         self.allowed_tester_states, self.allowed_sys_states = self.find_allowed_states()
         # self.w_set = None
         # self.aut, self.winning_set = self.synthesize_shield()
+        self.Wij, self.Vij_dict, self.state_tracker, self.ver2st_dict = self.synthesize_guide()
 
 
     '''-----Basic gridworld functions-----'''
@@ -165,6 +167,18 @@ class GridWorld:
         # st()
         return shield_dict
 
+    def synthesize_guide(self):
+        MERGE_SETTING = 'between'
+        TRACKLENGTH = self.width
+        Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
+        return Wij, Vij_dict, state_tracker, ver2st_dict
+
+    def check_guide(origin_state, state):
+        in_ws = check_system_states_in_winset(origin_state, state, self.ver2st_dict, self.state_tracker, self.Wij)
+        return in_ws
+
+
+
     def check_next_states_in_shield(self):
         accepted_states = create_shield()
         rel_pos_tup = self.get_relative_position()
@@ -183,7 +197,8 @@ class GridWorld:
     def check_if_state_in_winning_set(self,agent_list):
         # st()
         w_set = WinningSet()
-        state = self.map_to_state(agent_list)
+        ego_agent = (self.ego_agents[0].x, self.ego_agents[0].y)
+        state = self.map_to_state(ego_agent,agent_list)
         #state = {'x': 1, 'y': 1, 'x1': 3, 'y1':2, 'x2':1, 'y2': 2}  # To check if a state is in the winning set, pass all values in dictionary form. Each dictionary corresponds to one state.
         check_bdd = w_set.check_state_in_winset(self.aut, self.winning_set, state) # Check-bdd is a boolean. True implies that state is in the winning set.
         st()
@@ -201,9 +216,9 @@ class GridWorld:
             self.shield_dict.update({ (0, 1, -2, 1):[['move', 'move']]})
 
 
-    def map_to_state(self, agentlist):
+    def map_to_state(self, ego_agent, agentlist):
         # automate this
-        statedict = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agentlist[0][1], 'y1': agentlist[0][2], 'x2': agentlist[1][1], 'y2': agentlist[1][2]}
+        statedict = {'x': ego_agent[0], 'y': ego_agent[0], 'x1': agentlist[0][1], 'y1': agentlist[0][2], 'x2': agentlist[1][1], 'y2': agentlist[1][2]}
         return statedict
 
     def shield(self, enabled_actions):
@@ -255,6 +270,41 @@ class GridWorld:
             self.check_next_states_in_shield()
             ok_actions = self.shield_dict[rel_tup]
         return ok_actions
+
+    def possible_guided_actions(self):
+        ego_pos = (self.ego_agents[0].x, self.ego_agents[0].y)
+        agent_list = [[agent.name, agent.x, agent.y, agent.v, agent.goal] for agent in self.env_agents]
+        agent_list = sorted(agent_list_original, key = lambda item: item[1]) # sorted by x location
+        agent_list.reverse()
+        '''Find the possible actions for the tester agents from their position allowed under the guide'''
+        x = ego_pos[0]
+        y = ego_pos[1]
+        x1 = agent_list[0].x
+        y1 = agent_list[0].y
+        x2 = agent_list[1].x
+        y2 = agent_list[1].y
+        enabled_actions = list()
+        for action2 in self.env_actions.keys():
+            move_x2,move_y2 = self.env_actions[action2]
+            act_x2 = x2 + move_x2
+            act_y2 = y2 + move_y2
+            for action1 in self.env_actions.keys():
+                move_x1,move_y1 = self.env_actions[action1]
+                act_x1 = x1 + move_x1
+                act_y1 = y1 + move_y1
+
+                if act_x2 != act_x1 and act_y2 != act_y1: # testers not crashing
+                    if act_x2 != x and act_y2 != y: # testers and system not crashing
+                        if act_x1 != x and act_y1 != y:
+                            origin_state = {'x': x, 'y': y, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
+                            next_state = {'x': x, 'y': y, 'x1': act_x1, 'y1': act_y1, 'x2': act_x2, 'y2': act_y2}
+                            if check_guide(origin_state,next_state):
+                                enabled_actions.append([action2,action1])
+            # enabled_actions.update({'stay': (x,y)})
+        # st()
+        # shielded_actions = self.shield(enabled_actions)
+        # st()
+        return enabled_actions
 
 
     def enabled_actions_from_loc(self,agentpos,agent_list):
@@ -364,6 +414,7 @@ class GridWorld:
     def find_all_next_steps(self, agent_list_original):
         # find all possible action combinations for node
         actions = self.enabled_actions_for_2_testers()
+        # actions = possible_guided_actions()
         list_of_agentlists_mod = []
         for action_comb in actions:
             agent_list_copy = self.take_next_tester_step(action_comb,agent_list_original)

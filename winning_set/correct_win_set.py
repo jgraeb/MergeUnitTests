@@ -43,7 +43,11 @@ from tulip.synth import sys_to_spec
 import logging
 from tulip import transys, spec, synth
 import tulip.interfaces.omega as omega_intf
-from winset_constants import PRINT_STATES_IN_COMPUTATION
+try:
+    from winset_constants import PRINT_STATES_IN_COMPUTATION
+except:
+    from winning_set.winset_constants import PRINT_STATES_IN_COMPUTATION
+
 
 class Spec:
     def __init__(self,sys_vars,init,safety,progress):
