@@ -471,11 +471,11 @@ def add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker):
     assumption = set()
     prog_guarantee = set()
     Vj = Vij_dict[j]
-    assert j%2 == 1 # Make sure j is odd
-    if j >= 5:
-        FVj = Vij_dict[j-4]
+    assert j%2 == 0 # Make sure j is odd
+    if j >= 2:
+        FVj = Vij_dict[j-2]
     else:
-        FVj = Vij_dict[1]
+        FVj = Vij_dict[0]
 
     assumption_spec = construct_spec_set_membership(Vj, ver2st_dict)
     assumption |= {assumption_spec}
@@ -621,8 +621,9 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
     jmax = len(Vij) - 1
     Wij = dict()
     for j in np.linspace(jmax, 0, jmax+1):
-        if j%2 == 1:
+        if j%2 == 0:
             # Vij = Vij_dict
+            # st()
             test_spec = deepcopy(test_spec_orginal)
             ego_spec = deepcopy(ego_spec_orginal)
             assumption, prog_guarantee, goal_states = add_psi_i_j_progress(Vij, j, ver2st_dict, state_tracker)
@@ -647,8 +648,11 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
-            states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict)
-            # st()
+            # Filter out states that begin in Vj, are in the fixpoint, and satisfy the assumptions
+            start_set = Vij[j]
+
+            states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
+            st()
             Wij.update({j: states_in_winset})
     # st()
     return Wij
@@ -716,7 +720,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
                         Wk.append(state)
                 Wks.update({k: Wk})
             Wjs.update({j: Wks})
-    Wijks.update({i: Wjs})
+        Wijks.update({i: Wjs})
     st()
 
     st()
