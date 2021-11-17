@@ -11,12 +11,21 @@ import numpy as np
 from scene import Scene
 from agent import Agent
 from map import Map
-from winning_set import WinningSet, specs_for_entire_track, make_grspec, create_shield
+from winning_set.winning_set import WinningSet, specs_for_entire_track, make_grspec, create_shield
 import _pickle as pickle
 import os
 from copy import deepcopy
 from ipdb import set_trace as st
+from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
 
+
+def synthesize_guide():
+    MERGE_SETTING = 'between'
+    TRACKLENGTH = 10
+    Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
+    return Wij, Vij_dict, state_tracker, ver2st_dict
+
+Wij, Vij_dict, state_tracker, ver2st_dict = synthesize_guide()
 
 class GridWorld:
     def __init__(self,lanes,width, initial_scene, ego_agents=None, env_agents=None, turn=None):
@@ -46,6 +55,7 @@ class GridWorld:
         self.shield_dict = None
         # self.w_set = None
         # self.aut, self.winning_set = self.synthesize_shield()
+        # self.Wij, self.Vij_dict, self.state_tracker, self.ver2st_dict = self.synthesize_guide()
 
 
     '''-----Basic gridworld functions-----'''
@@ -66,7 +76,7 @@ class GridWorld:
             agent_list_copy[i][2] = agent_list_copy[i][2]+self.env_actions[action][1]
         return agent_list_copy
 
-    def take_next_step(self,agent,action,agent_list, check=False):
+    def take_next_step(self,agent,action,agent_list, check=False, debug = False):
         '''Given a list of agent positions, update the chosen agent position after the step'''
         # find agent in agentlist
         i = agent_list.index(agent)
@@ -79,7 +89,15 @@ class GridWorld:
         # check if allowed by shield here
         # state = {'x':,'y':,'x1':,'y1':, 'x2':, 'y2':}
         if check:
-            if self.check_if_spec_is_fulfilled(agent_list):
+            if debug:
+                st()
+            # print("trying to check")
+            # st()
+            state = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agent_list[0][1], 'y1': agent_list[0][2], 'x2': agent_list[1][1], 'y2': agent_list[1][2]}
+            origin_state = {'x':self.ego_agents[0].x,'y':self.ego_agents[0].y,'x1':self.env_agents[0].x,'y1':self.env_agents[0].y, 'x2':self.env_agents[1].x, 'y2':self.env_agents[1].y}
+
+            if self.check_guide(origin_state, state, debug):
+            # if self.check_if_spec_is_fulfilled(agent_list):
                 # st()
                 return agent_list
             else:
@@ -191,6 +209,13 @@ class GridWorld:
             w_set = WinningSet()
             self.shield_dict = self.synthesize_shield()
             self.shield_dict.update({ (0, 1, -2, 1):[['move', 'move']]})
+
+
+    def check_guide(self, origin_state, state, debug = False):
+        if debug:
+            st()
+        in_ws = check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij, debug)
+        return in_ws
 
 
     def map_to_state(self, agentlist):
@@ -399,7 +424,7 @@ class GridWorld:
             for action2 in actions2:
                 agent_list_copy2 = deepcopy(agent_list_copy)
                 check = True
-                agent_list_copy2 = self.take_next_step(agent2,action2,agent_list_copy2,check)
+                agent_list_copy2 = self.take_next_step(agent2,action2,agent_list_copy2,check, debug)
                 if agent_list_copy2 is not None:
                     # print('A gridworld child was found')
                     list_of_agentlists_mod.append(agent_list_copy2)
