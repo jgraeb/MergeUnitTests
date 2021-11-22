@@ -101,8 +101,8 @@ def play_game():
     game_trace = [] # Same as ego_trace and env_trace condensed into one step with env going first
     k = 0 #  Time stamp
     # Initial step by environment:
-    gridworld.env_take_step(gridworld.env_agents[0],'stay')
-    gridworld.env_take_step(gridworld.env_agents[0],'stay')
+    gridworld.env_take_step(gridworld.env_agents[0],'move')
+    gridworld.env_take_step(gridworld.env_agents[1],'move')
     # for agent in gridworld.env_agents:
     #     gridworld.env_take_step(agent,'move')
     for agent in gridworld.env_agents:
