@@ -18,10 +18,11 @@ from copy import deepcopy
 from ipdb import set_trace as st
 from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
 
+tracklength = 5
 
 def synthesize_guide():
     MERGE_SETTING = 'between'
-    TRACKLENGTH = 10
+    TRACKLENGTH = 5
     Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
     return Wij, Vij_dict, state_tracker, ver2st_dict
 
@@ -396,7 +397,7 @@ class GridWorld:
         agent_list_original = sorted(agent_list_original, key = lambda item: item[1]) # sorted by x location
         agent_list_original.reverse()
         list_of_agentlists = self.find_all_next_steps(agent_list_original)
-        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
+        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents, tracklength) for agentlist in list_of_agentlists]
         return list_of_gridworlds
         pass
 
@@ -428,8 +429,8 @@ class GridWorld:
                 if agent_list_copy2 is not None:
                     # print('A gridworld child was found')
                     list_of_agentlists_mod.append(agent_list_copy2)
-        list_of_agentlists = list_of_agentlists_mod
-        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
+        list_of_agentlists = deepcopy(list_of_agentlists_mod)
+        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents, tracklength) for agentlist in list_of_agentlists]
         # st()
         return list_of_gridworlds
 
@@ -465,7 +466,11 @@ class GridWorld:
         '''Pick a random child node'''
         if self.terminal:
             return None
+
         children = self.find_children()
+        print_child_gridworlds(children)
+        st()
+
         try:
             ran_child = choice(list(children))
             # print('picked a child')
@@ -531,8 +536,15 @@ class GridWorld:
                     children.add(gi)
         return children
 
-def make_gridworld(agentdata,egodata):
+def make_gridworld(agentdata,egodata,tracklength):
     '''Create a gridworld from a list of agents'''
     env_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
-    gi = GridWorld(2, 10, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
+    gi = GridWorld(2, tracklength, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
     return gi
+
+# Debug function:
+def print_child_gridworlds(children_list):
+    for ci in children_list:
+        print(ci.turn + " can play ")
+        ci.print_state()
+        # print("\n")
