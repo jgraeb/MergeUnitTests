@@ -17,12 +17,22 @@ import os
 from copy import deepcopy
 from ipdb import set_trace as st
 from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
+from helper import save_ws_comp_result, load_ws
 
 
 def synthesize_guide():
     MERGE_SETTING = 'between'
     TRACKLENGTH = 10
-    Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
+    # read pickle file - if not there save a new one
+    try:
+        print('Checking for the saved guide')
+        Wij, Vij_dict, state_tracker, ver2st_dict = load_ws()
+        print('Guide loaded successfully')
+
+    except:
+        print('Synthesizing the guide')
+        Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
+        save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict)
     return Wij, Vij_dict, state_tracker, ver2st_dict
 
 Wij, Vij_dict, state_tracker, ver2st_dict = synthesize_guide()

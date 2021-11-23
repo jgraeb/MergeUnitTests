@@ -29,3 +29,30 @@ def save_scene(gridworld,trace): # save each scene in trace
     gridworld.timestep += 1
     gridworld.trace = trace
     return trace
+
+def save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict):
+    # save objects in dictionary
+    ws = dict()
+    ws.update({'Wij': Wij})
+    ws.update({'Vij_dict': Vij_dict})
+    ws.update({'state_tracker': state_tracker})
+    ws.update({'ver2st_dict': ver2st_dict})
+    # save dict in pkl file
+    output_dir = os.getcwd()+'/guide/'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    filename = 'ws_out_files.pkl'
+    filepath = output_dir + filename
+    print('Saving winning set in pkl file')
+    with open(filepath, 'wb') as pckl_file:
+        pickle.dump(ws, pckl_file)
+
+def load_ws():
+    ws_file = os.getcwd()+'/guide/ws_out_files.pkl'
+    with open(ws_file, 'rb') as pckl_file:
+        ws = pickle.load(pckl_file)
+    Wij = ws['Wij']
+    Vij_dict = ws['Vij_dict']
+    state_tracker = ws['state_tracker']
+    ver2st_dict = ws['ver2st_dict']
+    return Wij, Vij_dict, state_tracker, ver2st_dict
