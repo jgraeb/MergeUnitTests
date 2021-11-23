@@ -689,6 +689,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
 
     # For each i, for each j in Wij - we can find the k (number to steps to j-1)
     # Wijk_vertex = deepcopy(Wijs)
+    """
     Wijks = dict()
     for i in Wij.keys():
         Wjs = dict()
@@ -729,6 +730,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
                 Wks.update({k: Wk})
             Wjs.update({j: Wks})
             Wijks.update({i: Wjs})
+    """
     # st()
 
     # st()
@@ -743,8 +745,7 @@ def check_if_state_in_winset(state):
 
 
 def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij, debug = False):
-    if debug:
-        st()
+    # st()
     next_states = find_next_states(state, ver2st_dict, state_tracker)
 
     # Find the next states in vertex represenation - probably not necessary
@@ -756,7 +757,7 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
                 next_states_ver.append(vertex)
 
     # Find if all of these states are in Wij
-    # st()
+    st()
     # Find j or original state for each i and compare to that value for all new states
     progress = False
     for i in Wij:
@@ -767,13 +768,14 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
             if origin_state in Wij[i][j]:
                 j_original = j
             for next_state in next_states:
+                if debug:
+                    st()
                 if next_state in Wij[i][j]:
                     j_next = j
+        st()
         if j_next and j_original and j_next <= j_original:
             progress = True
     return progress
-
-
 
 def find_next_states(state, ver2st_dict, state_tracker):
     """
@@ -820,7 +822,7 @@ def get_dict_inv_multiple(dict_in, value):
     return keys
 
 if __name__ == '__main__':
-    tracklength = 4
+    tracklength = 5
     merge_setting = "between"
     # state_tracker: keeps track of all system and tester states
     # ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
@@ -830,9 +832,9 @@ if __name__ == '__main__':
     # states_in_winset = get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
     Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(tracklength, merge_setting)
     # st()
-    origin_state = {'x': 1, 'y': 1, 'x1': 2, 'y1': 2, 'x2': 1, 'y2': 2} # 43
+    origin_state = {'x': 3, 'y': 1, 'x1': 4, 'y1': 2, 'x2': 3, 'y2': 2} # 43
 
-    state = {'x': 1, 'y': 1, 'x1': 3, 'y1': 2, 'x2': 1, 'y2': 2}
+    state = {'x': 3, 'y': 1, 'x1': 4, 'y1': 2, 'x2': 3, 'y2': 2}
     in_ws = check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij)
 
     st()
