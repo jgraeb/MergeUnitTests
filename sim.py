@@ -16,6 +16,7 @@ from copy import deepcopy
 from ipdb import set_trace as st
 from helper import *
 from gridworld import GridWorld
+tracklength = 5
 
 def new_init_scene():
     '''Setting up the initial scene as list of agents'''
@@ -33,7 +34,7 @@ def new_init_scene():
 def new_World():
     '''Create the gridworld from the initial scene'''
     init_scene = new_init_scene()
-    return GridWorld(2, 10, init_scene)
+    return GridWorld(2, tracklength, init_scene)
 
 def run_random_sim(maxstep):
     '''Run a random simulation / for debugging - not used in MCTS!!!'''
@@ -100,6 +101,9 @@ def play_game():
 
     game_trace = [] # Same as ego_trace and env_trace condensed into one step with env going first
     k = 0 #  Time stamp
+    # Initial step by the system:
+    gridworld.ego_take_input('stay')
+
     # Initial step by environment:
     gridworld.env_take_step(gridworld.env_agents[0],'move')
     gridworld.env_take_step(gridworld.env_agents[1],'move')
