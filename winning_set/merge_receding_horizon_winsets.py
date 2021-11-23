@@ -24,6 +24,9 @@ from tulip.synth import sys_to_spec
 import logging
 from ipdb import set_trace as st
 from tulip import transys, spec, synth
+import sys
+sys.path.append('..')
+from test_parameters import TRACKLENGTH, MERGE_SETTING
 try:
     from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
 except:
@@ -36,6 +39,7 @@ try:
     from winset_constants import PRINT_STATES_IN_COMPUTATION
 except:
     from winning_set.winset_constants import PRINT_STATES_IN_COMPUTATION
+
 
 
 # Merge example
@@ -757,24 +761,30 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
                 next_states_ver.append(vertex)
 
     # Find if all of these states are in Wij
-    st()
+    # st()
     # Find j or original state for each i and compare to that value for all new states
     progress = False
     for i in Wij:
-        j_next = None
+        j_next = dict()
+        num_state = dict()
+        for statenum,next_state in enumerate(next_states):
+            num_state.update({statenum: next_state})
+            j_next.update({statenum: None})
         j_original = None
         for j in Wij[i]:
             # check if state is in the winning set
             if origin_state in Wij[i][j]:
                 j_original = j
-            for next_state in next_states:
+            for statenum, next_state in enumerate(next_states):
                 if debug:
                     st()
                 if next_state in Wij[i][j]:
-                    j_next = j
-        st()
-        if j_next and j_original and j_next <= j_original:
-            progress = True
+                    j_next.update({statenum: j})
+        # st()
+        if j_original and all(j_next.values()):
+            j_next_max = max(j_next, key=j_next.get)
+            if j_next_max <= j_original:
+                progress = True
     return progress
 
 def find_next_states(state, ver2st_dict, state_tracker):
@@ -822,15 +832,13 @@ def get_dict_inv_multiple(dict_in, value):
     return keys
 
 if __name__ == '__main__':
-    tracklength = 5
-    merge_setting = "between"
     # state_tracker: keeps track of all system and tester states
     # ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
     # # pdb.set_trace()
     # # states_in_winset returns only tester states in winset
     # # Modify here: Add function to simulate forward and get system states that only lead into the next winning set
     # states_in_winset = get_winset_rh(tracklength, merge_setting, Vij_dict, state_tracker, ver2st_dict)
-    Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(tracklength, merge_setting)
+    Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
     # st()
     origin_state = {'x': 3, 'y': 1, 'x1': 4, 'y1': 2, 'x2': 3, 'y2': 2} # 43
 
