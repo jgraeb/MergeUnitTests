@@ -750,6 +750,8 @@ def check_if_state_in_winset(state):
 
 def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij, debug = False):
     # st()
+    if origin_state == {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}:
+        st()
     next_states = find_next_states(state, ver2st_dict, state_tracker)
 
     # Find the next states in vertex represenation - probably not necessary
@@ -765,6 +767,8 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
     # Find j or original state for each i and compare to that value for all new states
     progress = False
     for i in Wij:
+        if debug:
+            st()
         j_next = dict()
         num_state = dict()
         for statenum,next_state in enumerate(next_states):
@@ -772,6 +776,8 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
             j_next.update({statenum: None})
         j_original = None
         for j in Wij[i]:
+            if debug:
+                st()
             # check if state is in the winning set
             if origin_state in Wij[i][j]:
                 j_original = j
@@ -779,9 +785,15 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
                 if debug:
                     st()
                 if next_state in Wij[i][j]:
-                    j_next.update({statenum: j})
+                    storej = j
+                    if j == 0.0:
+                        storej = 'goal'
+                    j_next.update({statenum: storej})
         # st()
         if j_original and all(j_next.values()):
+            for key in j_next.keys():
+                if j_next[key] == 'goal':
+                    j_next[key] = 0
             j_next_max = max(j_next, key=j_next.get)
             if j_next_max <= j_original:
                 progress = True
@@ -841,8 +853,7 @@ if __name__ == '__main__':
     Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
     # st()
     origin_state = {'x': 3, 'y': 1, 'x1': 4, 'y1': 2, 'x2': 3, 'y2': 2} # 43
-
-    state = {'x': 3, 'y': 1, 'x1': 4, 'y1': 2, 'x2': 3, 'y2': 2}
+    state = {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}
     in_ws = check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracker, Wij)
 
     st()

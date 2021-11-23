@@ -6,7 +6,6 @@
 #                                                                           #
 #############################################################################
 from random import choice
-# from mcts import MCTS, Node
 import numpy as np
 from scene import Scene
 from agent import Agent
@@ -18,12 +17,10 @@ from copy import deepcopy
 from ipdb import set_trace as st
 from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
 from helper import save_ws_comp_result, load_ws
-
-tracklength = 5
+from test_parameters import TRACKLENGTH, MERGE_SETTING
 
 def synthesize_guide():
     MERGE_SETTING = 'between'
-    TRACKLENGTH = 10
     # read pickle file - if not there save a new one
     try:
         print('Checking for the saved guide')
@@ -106,10 +103,12 @@ class GridWorld:
             # st()
             state = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agent_list[0][1], 'y1': agent_list[0][2], 'x2': agent_list[1][1], 'y2': agent_list[1][2]}
             origin_state = {'x':self.ego_agents[0].x,'y':self.ego_agents[0].y,'x1':self.env_agents[0].x,'y1':self.env_agents[0].y, 'x2':self.env_agents[1].x, 'y2':self.env_agents[1].y}
-
+            # make sure all agents stay on the track:
+            for tester in self.env_agents:
+                if tester.x > TRACKLENGTH:
+                    return None
+            # check for the guide filter
             if self.check_guide(origin_state, state, debug):
-            # if self.check_if_spec_is_fulfilled(agent_list):
-                # st()
                 return agent_list
             else:
                 return None
@@ -316,6 +315,28 @@ class GridWorld:
             enabled_actions.update({'stay': (x,y)}) # stay is always included
         return enabled_actions
 
+    def enabled_system_actions(self,agent):
+        '''Find possible actions for system agent'''
+        enabled_actions = dict()
+        x = agent.x
+        y = agent.y
+
+        # check for merge
+        move_x, move_y = self.actions['mergeR']
+        act_x = x + move_x
+        act_y = y + move_y
+        if self.is_cell_free((act_x,act_y)) and act_y in range(1,3):
+            enabled_actions.update({'mergeR': (act_x,act_y)})
+            return enabled_actions
+        for action in self.actions.keys():
+            move_x,move_y = self.actions[action]
+            act_x = x+move_x
+            act_y = y+move_y
+            if self.is_cell_free((act_x,act_y)) and act_y in range(1,3):
+                enabled_actions.update({action: (act_x,act_y)})
+            enabled_actions.update({'stay': (x,y)}) # stay is always included
+        return enabled_actions
+
 
     def is_cell_free(self, cellxy, agent_list = None):
         '''check if the cell is free'''
@@ -407,7 +428,7 @@ class GridWorld:
         agent_list_original = sorted(agent_list_original, key = lambda item: item[1]) # sorted by x location
         agent_list_original.reverse()
         list_of_agentlists = self.find_all_next_steps(agent_list_original)
-        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents, tracklength) for agentlist in list_of_agentlists]
+        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
         return list_of_gridworlds
         pass
 
@@ -440,7 +461,7 @@ class GridWorld:
                     # print('A gridworld child was found')
                     list_of_agentlists_mod.append(agent_list_copy2)
         list_of_agentlists = deepcopy(list_of_agentlists_mod)
-        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents, tracklength) for agentlist in list_of_agentlists]
+        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
         # st()
         return list_of_gridworlds
 
@@ -478,8 +499,8 @@ class GridWorld:
             return None
 
         children = self.find_children()
-        print_child_gridworlds(children)
-        st()
+        # print_child_gridworlds(children)
+        # st()
 
         try:
             ran_child = choice(list(children))
@@ -489,6 +510,8 @@ class GridWorld:
             debug = True
             children = self.find_children(debug)
 
+        # print('Picked:')
+        # ran_child.print_state()
         return ran_child
 
     def spec_check(self):
@@ -525,16 +548,16 @@ class GridWorld:
         '''Find all children for a node'''
         if self.terminal:
             return set()
-        if self.turn=="env":
+        if self.turn=="env": # the testers take their turn
             #agent = 'ag_env'
             children = set()
             count = 1
             for gi in self.get_children_gridworlds(debug):
                 children.add(gi)
-        else:
+        else: # the environment takes its turn
             for agent in self.ego_agents:
                 #agent = 'ego'
-                enabled_actions = self.enabled_actions(agent)
+                enabled_actions = self.enabled_system_actions(agent)
                 # st()
                 children = set()
                 count = 1
@@ -546,10 +569,10 @@ class GridWorld:
                     children.add(gi)
         return children
 
-def make_gridworld(agentdata,egodata,tracklength):
+def make_gridworld(agentdata,egodata):
     '''Create a gridworld from a list of agents'''
     env_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
-    gi = GridWorld(2, tracklength, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
+    gi = GridWorld(2, TRACKLENGTH, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
     return gi
 
 # Debug function:

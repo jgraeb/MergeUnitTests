@@ -16,7 +16,8 @@ from copy import deepcopy
 from ipdb import set_trace as st
 from helper import *
 from gridworld import GridWorld
-tracklength = 5
+from test_parameters import TRACKLENGTH, MERGE_SETTING
+
 
 def new_init_scene():
     '''Setting up the initial scene as list of agents'''
@@ -34,7 +35,7 @@ def new_init_scene():
 def new_World():
     '''Create the gridworld from the initial scene'''
     init_scene = new_init_scene()
-    return GridWorld(2, tracklength, init_scene)
+    return GridWorld(2, TRACKLENGTH, init_scene)
 
 def run_random_sim(maxstep):
     '''Run a random simulation / for debugging - not used in MCTS!!!'''
