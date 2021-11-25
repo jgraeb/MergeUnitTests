@@ -13,14 +13,16 @@ Created on Sat Oct  2 15:29:45 2021
 #                                                                           #
 #############################################################################
 from __future__ import print_function
+import sys
+sys.path.append('..')
 from random import choice
 # from mcts import MCTS, Node
 import numpy as np
 from tulip.spec import form
-from scene import Scene
-from agent import Agent
-from map import Map
+import sys
+sys.path.append('..')
 import networkx as nx
+from networkx import NetworkXNoPath
 from omega.symbolic import temporal as trl
 import pickle
 import os
@@ -40,6 +42,11 @@ from tulip.synth import sys_to_spec
 import logging
 from tulip import transys, spec, synth
 import tulip.interfaces.omega as omega_intf
+try:
+    from winset_constants import PRINT_STATES_IN_COMPUTATION
+except:
+    from winning_set.winset_constants import PRINT_STATES_IN_COMPUTATION
+
 
 class Spec:
     def __init__(self,sys_vars,init,safety,progress):
@@ -47,6 +54,14 @@ class Spec:
         self.init = init
         self.safety = safety
         self.prog = progress
+
+# Get key from a dictionary for a corresponding value:
+def get_dict_inv(dict_in, value):
+    key = ''
+    for k, v in dict_in.items():
+        if v == value:
+            key = k
+    return key
 
 # Get GRSpec:
 # Standard form controller synthesis of GR(1) specifications:
@@ -60,9 +75,8 @@ def make_grspec(sys_spec, env_spec):
     sys_safe = sys_spec.safety
     env_prog = env_spec.prog
     sys_prog = sys_spec.prog
-    
-    specs = spec.GRSpec(env_vars, sys_vars, env_init, sys_init,
-                    env_safe, sys_safe, env_prog, sys_prog)
+
+    specs = spec.GRSpec(env_vars, sys_vars, env_init, sys_init,env_safe,    sys_safe, env_prog, sys_prog)
     specs.qinit = r'\A \E'
     specs.moore = False
     specs.plus_one = False
@@ -173,8 +187,8 @@ def specs_two_testers(tracklength):
         merge_spec += "|| " + new_merge_state
         # sys_merge_spec += ' || (y=2 && x= '+str(ki+1)+')'
     tester_prog |= {merge_spec}
-    
-    
+
+
     # tester_prog |= {sys_merge_spec}
     # tester_prog |= {'(y=2 && y1=2 && y2=2)'}
 
@@ -200,7 +214,7 @@ def specs_two_testers(tracklength):
     #         tester_safe |= {'!(x='+str(tracklength)+' && x1 ='+str(tracklength)+' && y= 2 && y1 = 2)'}
     #         tester_safe |= {'!(x='+str(1)+' && x2 ='+str(1)+' && y= 1 && y2 = 1)'}
     #         tester_safe |= {'!(x='+str(tracklength)+' && x1 ='+str(tracklength)+' && y=1 && y1 = 1)'}
-    
+
     tester_safe |= {'y1=2'} # testers stay in bottom lane
     tester_safe |= {'y2=2'}
 
@@ -208,7 +222,7 @@ def specs_two_testers(tracklength):
     for ii in range(2,tracklength):
         tester_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
-    
+
     for ii in range(1,tracklength):
         if ii != tracklength - 1:
             tester_safe |= {'(x2='+str(ii)+' && y2=2) -> X((x2='+str(ii+1)+' && y2=2)||(x2='+str(ii)+' && y2=2)|| (x2='+str(ii+1)+' && y2=1))'}
@@ -220,7 +234,7 @@ def specs_two_testers(tracklength):
 
     tester_safe |= {'(x1 =' + str(tracklength) + ' && y1 = 2) -> X(x1 = '+str(tracklength) +' && y1=2)'}
     tester_safe |= {'(x1 =' + str(tracklength) + ' && y1 = 1) -> X(x1 = '+str(tracklength) +' && y1=1)'}
-    
+
     # T2 remains behind T1:
     # Doesn't really make much of a difference
     # tester_state = '(x1 = 2 && x2 = 1)'
@@ -230,7 +244,7 @@ def specs_two_testers(tracklength):
     #         x2_states += '|| x2='+ str(x2)
     #     tester_state += '||( x1 = '+str(ii)+' && (' + x2_states + '))'
     # tester_safe |= {tester_state}
-        
+
     # Terminal conditions: Once car merges, it remains merged.
     # for xi in range(1,tracklength+1):
     #     for x1i in range(2,tracklength):
@@ -243,12 +257,12 @@ def specs_two_testers(tracklength):
     #                 test_state_2i = '(x2 = '+ str(x2i) +' && y2 = ' + str(yi) + ')'
     #                 tester_safe |= {'((y=2 && x = '+str(xi)+') && '+str(test_state_1i)+') -> X('+test_state_1i+')'}
     #                 tester_safe |= {'((y=2 && x = '+str(xi)+') && '+str(test_state_2i)+') -> X('+test_state_2i+')'}
-                    
+
     # # System reaches end of the road without merging:
     # sys_safe |= {'(y=1 && x=' + str(tracklength)+') -> X(y=1 && x=' + str(tracklength) +')'}
     # tester_safe |= {'((y=1 && x = '+str(tracklength)+') && '+str(test_state_1i)+') -> X('+test_state_1i+')'} # system reaches end of the road / no more merges
     # tester_safe |= {'((y=1 && x = '+str(tracklength)+') && '+str(test_state_2i)+') -> X('+test_state_2i+')'} # system reaches end of the road / no more merges
-                    
+
     # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
@@ -309,7 +323,7 @@ def specs_for_entire_track(tracklength):
                 # sys_safe |= {'(x='+str(xi)+' && y= '+str(yi)+ ') -> X(!(x1 ='+str(xi)+ ' && y1 = '+str(yi)+'))'}
                 tester_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
                 sys_safe |= {'!(x='+str(xi)+' && x1 ='+str(xi)+' && y= '+str(yi)+ ' && y1 = '+str(yi)+')'}
-    
+
     sys_safe |= {'!(x='+str(1)+' && x2 ='+str(1)+' && y= 2 && y2 = 2)'}
     sys_safe |= {'!(x='+str(1)+' && x2 ='+str(1)+' && y= 1 && y2 = 1)'}
     sys_safe |= {'!(x='+str(tracklength)+' && x1 ='+str(tracklength)+' && y= 2 && y1 = 2)'}
@@ -319,7 +333,7 @@ def specs_for_entire_track(tracklength):
     tester_safe |= {'!(x='+str(tracklength)+' && x1 ='+str(tracklength)+' && y= 2 && y1 = 2)'}
     tester_safe |= {'!(x='+str(1)+' && x2 ='+str(1)+' && y= 1 && y2 = 1)'}
     tester_safe |= {'!(x='+str(tracklength)+' && x1 ='+str(tracklength)+' && y=1 && y1 = 1)'}
-    
+
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
 
     # Tester dynamics
@@ -330,11 +344,11 @@ def specs_for_entire_track(tracklength):
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
     # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
     tester_safe |= {'(x2='+str(tracklength)+' && y2=2) -> X(x2='+str(tracklength)+' && y2=2)'}
-    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}    
-    
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}
+
     tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
-    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}    
-    
+    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+
     tester_safe |= {'(x1='+str(tracklength)+' && y1=2) -> X(x1='+str(tracklength)+' && y1=2)'}
     tester_safe |= {'(x1='+str(tracklength)+' && y1=1) -> X(x1='+str(tracklength)+' && y1=1)'}
 
@@ -382,19 +396,19 @@ def specs_car_merge(tracklength):
     for xi in range(1, tracklength-1):
         merge_if_possible = '(!(y1=2 && x1 = '+str(xi+1) +') && !(y2=2 && x2 = '+str(xi+1) +')) -> X(y=2 && x='+str(xi+1)+')'
         sys_safe |= {merge_if_possible}
-        
+
     # Last cell merge:
     merge_if_possible = '(!(y1=2 && x1 = '+str(tracklength) +')) -> X(y=2 && x='+str(tracklength)+')'
     sys_safe |= {merge_if_possible}
-    
+
     # Don't start until x1 is in front:
     sys_safe |= {'(x1=2 && y1=2) -> X(x=1 && y=1)'}
-    
+
     # S - -
-    # T T - 
+    # T T -
     # Never reach the end state:
     # sys_safe |= {'!(x=3 && y=1)'}
-    
+
     # testers
     tester_vars = {}
     tester_vars['x1'] = (2,tracklength)
@@ -407,37 +421,37 @@ def specs_car_merge(tracklength):
 
     # - - -
     # T S T
-    # 
+    #
     #   1 2 3
     # 1 - - -
     # 2 - - -
     #
-    # 1) 
+    # 1)
     # - - -
     # T S T
-    
-    # 2) 
+
+    # 2)
     # S - -
     # T _ T
-    
-    # 3) 
-    # - - S -
-    # - T _ T
-    
+
+    # 3)
+    # S - -
+    # T T _
+
     # [](x=2 /\ y=2 -> x1=3 /\ y=2 /\ x2=1  /\ y2 =2)
     # merge_spec = '((x=2 && y=2 && x1=3 && x2=1 && y1=2 && y2=2))'
     merge_spec = '((x=2 && y=2) -> (x1=3 && x2=1 && y1=2 && y2=2))'
     for ki in range(2,tracklength-1):
         merge_spec = merge_spec + ' || ((x='+str(ki+1)+' && y=2) -> ((x1='+str(ki+2)+' && (x2='+str(ki)+') && y1=2 && y2=2)))'
     tester_safe |= {merge_spec}
-    
+
     # T2 shouldn't reach the last cell unless T1 merges:
     tester_safe |= {'(y=1 -> X !(x2=2))'}
     tester_prog |= {'(x1=3 && x2=1 && y1=2 && y2=2)'}
     # tester_prog |= {'(x=2 && y=2)'}
     # tester_prog |= {}
     # <>[](!(x=2 && y=2)) \/ []<>(x1=3 && x2=1 && y1=2 && y2=2)
-    
+
     # No collision with other vehicles:
     for yi in range(1,3):
         for xi in range(1, tracklength+1):
@@ -452,7 +466,7 @@ def specs_car_merge(tracklength):
                 # sys_safe |= {'(x='+str(xi)+' && y= '+str(yi)+ ') -> X(!(x1 ='+str(xi)+ ' && y1 = '+str(yi)+'))'}
                 tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+') -> X(!(x1 ='+str(xi)+'&& y1 = '+str(yi)+'))'}
                 sys_safe |= {'(x1 ='+str(xi)+' && y1 = '+str(yi)+') -> X(!(x='+str(xi)+' && y = '+str(yi)+ '))'}
-    
+
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 2) -> X(!(x='+str(1)+' && y = 2))'}
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 1) -> X(!(x='+str(1)+' && y = 1))'}
     sys_safe |= {'(x1 ='+str(tracklength)+'&& y1 = 2) -> X(!(x='+str(tracklength)+' && y= 2))'}
@@ -462,7 +476,7 @@ def specs_car_merge(tracklength):
     tester_safe |= {'(x ='+str(1)+'&& y = 1) -> X(!(x2='+str(1)+' && y2 = 1))'}
     tester_safe |= {'(x ='+str(tracklength)+'&& y = 2) -> X(!(x1 ='+str(tracklength)+' && y1 = 2))'}
     tester_safe |= {'(x ='+str(tracklength)+' && y = 1) -> X(!(x1 ='+str(tracklength)+' && y1 = 1))'}
-    
+
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
 
     # Tester dynamics
@@ -473,11 +487,11 @@ def specs_car_merge(tracklength):
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
     # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
     tester_safe |= {'(x2='+str(tracklength)+' && y2=2) -> X(x2='+str(tracklength)+' && y2=2)'}
-    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}    
-    
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}
+
     tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
-    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}    
-    
+    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+
     tester_safe |= {'(x1='+str(tracklength)+' && y1=2) -> X(x1='+str(tracklength)+' && y1=2)'}
     tester_safe |= {'(x1='+str(tracklength)+' && y1=1) -> X(x1='+str(tracklength)+' && y1=1)'}
 
@@ -512,7 +526,7 @@ def specs_car_merge_front(tracklength):
     for ii in range(1,tracklength):
         sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
         sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii+1)+' && y=2)||(x='+str(ii)+' && y=2)|| (x='+str(ii+1)+' && y=1))'}
-    
+
     sys_safe |= {'(x='+str(tracklength)+' && y=2 )-> X(x='+str(tracklength)+' && y=2)'}
     sys_safe |= {'(x='+str(tracklength)+' && y=1 )-> X(x='+str(tracklength)+' && y=1)'}
 
@@ -520,14 +534,14 @@ def specs_car_merge_front(tracklength):
     for xi in range(1, tracklength-1):
         merge_if_possible = '(!(y1=2 && x1 = '+str(xi+1) +') && !(y2=2 && x2 = '+str(xi+1) +')) -> X(y=2 && x='+str(xi+1)+')'
         sys_safe |= {merge_if_possible}
-        
+
     # Last cell merge:
     merge_if_possible = '(!(y1=2 && x1 = '+str(tracklength) +')) -> X(y=2 && x='+str(tracklength)+')'
     sys_safe |= {merge_if_possible}
-    
+
     # Don't start until x1 is in front:
     # sys_safe |= {'(x1=2 && y1=2) -> X(x=1 && y=1)'}
-    
+
     # testers
     tester_vars = {}
     tester_vars['x1'] = (2,tracklength)
@@ -544,7 +558,7 @@ def specs_car_merge_front(tracklength):
     for ki in range(2,tracklength):
         merge_spec = merge_spec + ' || ((x='+str(ki+1)+' && y=2) -> ((x1='+str(ki)+' && y1=2) || (x2='+str(ki)+' && y2=2)))'
     tester_safe |= {merge_spec}
-    
+
     # T2 shouldn't reach the last cell unless T1 merges:
     # tester_safe |= {'(y=1 -> X !(x2=2))'}
     # tester_prog |= {'(x1=3 && x2=1 && y1=2 && y2=2)'}
@@ -562,7 +576,7 @@ def specs_car_merge_front(tracklength):
                 # sys_safe |= {'(x='+str(xi)+' && y= '+str(yi)+ ') -> X(!(x1 ='+str(xi)+ ' && y1 = '+str(yi)+'))'}
                 tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+') -> X(!(x1 ='+str(xi)+'&& y1 = '+str(yi)+'))'}
                 sys_safe |= {'(x1 ='+str(xi)+' && y1 = '+str(yi)+') -> X(!(x='+str(xi)+' && y = '+str(yi)+ '))'}
-    
+
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 2) -> X(!(x='+str(1)+' && y = 2))'}
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 1) -> X(!(x='+str(1)+' && y = 1))'}
     sys_safe |= {'(x1 ='+str(tracklength)+'&& y1 = 2) -> X(!(x='+str(tracklength)+' && y= 2))'}
@@ -572,7 +586,7 @@ def specs_car_merge_front(tracklength):
     tester_safe |= {'(x ='+str(1)+'&& y = 1) -> X(!(x2='+str(1)+' && y2 = 1))'}
     tester_safe |= {'(x ='+str(tracklength)+'&& y = 2) -> X(!(x1 ='+str(tracklength)+' && y1 = 2))'}
     tester_safe |= {'(x ='+str(tracklength)+' && y = 1) -> X(!(x1 ='+str(tracklength)+' && y1 = 1))'}
-    
+
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
 
     # Tester dynamics
@@ -583,11 +597,11 @@ def specs_car_merge_front(tracklength):
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
     # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
     tester_safe |= {'(x2='+str(tracklength)+' && y2=2) -> X(x2='+str(tracklength)+' && y2=2)'}
-    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}    
-    
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}
+
     tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
-    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}    
-    
+    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+
     tester_safe |= {'(x1='+str(tracklength)+' && y1=2) -> X(x1='+str(tracklength)+' && y1=2)'}
     tester_safe |= {'(x1='+str(tracklength)+' && y1=1) -> X(x1='+str(tracklength)+' && y1=1)'}
 
@@ -629,14 +643,14 @@ def specs_car_merge_back(tracklength):
     for xi in range(1, tracklength-1):
         merge_if_possible = '(!(y1=2 && x1 = '+str(xi+1) +') && !(y2=2 && x2 = '+str(xi+1) +')) -> X(y=2 && x='+str(xi+1)+')'
         sys_safe |= {merge_if_possible}
-        
+
     # Last cell merge:
     merge_if_possible = '(!(y1=2 && x1 = '+str(tracklength) +')) -> X(y=2 && x='+str(tracklength)+')'
     sys_safe |= {merge_if_possible}
-    
+
     # Don't start until x1 is in front:
     sys_safe |= {'(x1=2 && y1=2) -> X(x=1 && y=1)'}
-    
+
     # testers
     tester_vars = {}
     tester_vars['x1'] = (2,tracklength)
@@ -646,7 +660,7 @@ def specs_car_merge_back(tracklength):
     tester_init = {'x1='+str(2), 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
     tester_prog = set()
     tester_safe = set()
-    
+
     # [](x=2 /\ y=2 -> x1=3 /\ y=2 /\ x2=1  /\ y2 =2)
     # merge_spec = '((x=2 && y=2 && x1=3 && x2=1 && y1=2 && y2=2))'
     merge_spec = ''
@@ -654,15 +668,15 @@ def specs_car_merge_back(tracklength):
         if ki == tracklength-1:
             if merge_spec == '':
                 merge_spec = '(x='+str(ki)+' && y=2) -> ((x1='+str(ki+1)+' && y1=2))'
-            else: 
+            else:
                 merge_spec = merge_spec + ' || ((x='+str(ki)+' && y=2) -> (x1='+str(ki+1)+' && y1=2))'
         else:
             if merge_spec == '':
                 merge_spec = '(x='+str(ki)+' && y=2) -> ((x1='+str(ki+1)+' && y1=2) || (x2='+str(ki+1)+' && y2=2))'
-            else: 
+            else:
                 merge_spec = merge_spec + '|| ((x='+str(ki)+' && y=2) -> ((x1='+str(ki+1)+' && y1=2) || (x2='+str(ki+1)+' && y2=2)))'
     tester_safe |= {merge_spec}
-    
+
     # T2 shouldn't reach the last cell unless T1 merges:
     tester_safe |= {'(y=1 -> X !(x2=2))'}
 
@@ -678,7 +692,7 @@ def specs_car_merge_back(tracklength):
                 tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
                 tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+') -> X(!(x1 ='+str(xi)+'&& y1 = '+str(yi)+'))'}
                 sys_safe |= {'(x1 ='+str(xi)+' && y1 = '+str(yi)+') -> X(!(x='+str(xi)+' && y = '+str(yi)+ '))'}
-    
+
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 2) -> X(!(x='+str(1)+' && y = 2))'}
     sys_safe |= {'(x2 ='+str(1)+'&& y2 = 1) -> X(!(x='+str(1)+' && y = 1))'}
     sys_safe |= {'(x1 ='+str(tracklength)+'&& y1 = 2) -> X(!(x='+str(tracklength)+' && y= 2))'}
@@ -688,7 +702,7 @@ def specs_car_merge_back(tracklength):
     tester_safe |= {'(x ='+str(1)+'&& y = 1) -> X(!(x2='+str(1)+' && y2 = 1))'}
     tester_safe |= {'(x ='+str(tracklength)+'&& y = 2) -> X(!(x1 ='+str(tracklength)+' && y1 = 2))'}
     tester_safe |= {'(x ='+str(tracklength)+' && y = 1) -> X(!(x1 ='+str(tracklength)+' && y1 = 1))'}
-    
+
     tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
 
     # Tester dynamics
@@ -699,11 +713,11 @@ def specs_car_merge_back(tracklength):
         tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
     # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
     tester_safe |= {'(x2='+str(tracklength)+' && y2=2) -> X(x2='+str(tracklength)+' && y2=2)'}
-    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}    
-    
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}
+
     tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
-    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}    
-    
+    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+
     tester_safe |= {'(x1='+str(tracklength)+' && y1=2) -> X(x1='+str(tracklength)+' && y1=2)'}
     tester_safe |= {'(x1='+str(tracklength)+' && y1=1) -> X(x1='+str(tracklength)+' && y1=1)'}
 
@@ -723,27 +737,66 @@ def specs_car_merge_back(tracklength):
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
 
+# Check safety and progress requirements:
+# Check s |= A && G, and put states in winning states:
+# Check if there is a path from state to goal on G, then proceed to check if it # satisfies the conditions on the merge problems:
+# i) The cell diagonally opposite is blocked by a tester car
+# ii) The cell diagonally opposite is free and if the car merges into the free # cell, it will be sandwiched by the two tester cars
+def check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G):
+    x = state['x']
+    y = state['y']
+    x1 = state['x1']
+    y1 = state['y1']
+    x2 = state['x2']
+    y2 = state['y2']
+    flg = False
+    goal_nodes = [g for g in goal_states]
+    for goal_node in goal_nodes:
+        # pdb.set_trace()
+        try:
+            spath = nx.shortest_path(G, state_node, goal_node)
+        except:
+            spath = []
+        if spath != []:
+            if x1 == tracklength:
+                spec = lambda x, y, x1, y1, x2, y2: ((x2==x or x2==x+1) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
+                flg = spec(x,y,x1,y1,x2,y2)
+            else:
+                # spec1: There is a car diagonally opposite front
+                spec1 = lambda x, y, x1, y1, x2, y2: ((x2==x+1) and (y==1) and (y2==2)) or ((x1==x+1) and (y==1) and (y1==2))
+                # spec2: the diagonally opposite cell is free to merge in between the specifications
+                spec2 = lambda x, y, x1, y1, x2, y2: ((x2==x) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
+                flg = spec1(x,y,x1,y1,x2,y2) or spec2(x,y,x1,y1,x2,y2)
+            spec_merged = lambda x, y, x1, y1, x2, y2: ((x2==x-1) and (x1==x2+2) and (y==2) and (y1==2) and (y2==2))
+            flg = flg or spec_merged(x,y,x1,y1, x2, y2)
+        if flg:
+            return flg
+
+    return flg
+
 # Check safety and progress assumptions:
 # Check s |= A && G, and only put those states that are in the winning set:
 def check_st_A_int_G(state, tracklength, mode):
     x = state['x']
-    y = state['y'] 
+    y = state['y']
     x1 = state['x1']
-    y1 = state['y1'] 
+    y1 = state['y1']
     x2 = state['x2']
     y2 = state['y2']
     flg = False
     if mode == "between":
         if x1 == tracklength:
             spec = lambda x, y, x1, y1, x2, y2: ((x2==x or x2==x+1) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
-            flg = spec(x,y,x1,y1,x2,y2) 
+            flg = spec(x,y,x1,y1,x2,y2)
         else:
+            # spec1: There is a car diagonally opposite front
             spec1 = lambda x, y, x1, y1, x2, y2: ((x2==x+1) and (y==1) and (y2==2)) or ((x1==x+1) and (y==1) and (y1==2))
+            # spec2: the diagonally opposite cell is free to merge in between the specifications
             spec2 = lambda x, y, x1, y1, x2, y2: ((x2==x) and (x1==x2+2) and (y==1) and (y1==2) and (y2==2))
             flg = spec1(x,y,x1,y1,x2,y2) or spec2(x,y,x1,y1,x2,y2)
         spec_merged = lambda x, y, x1, y1, x2, y2: ((x2==x-1) and (x1==x2+2) and (y==2) and (y1==2) and (y2==2))
         flg = flg or spec_merged(x,y,x1,y1, x2, y2)
-    
+
     elif mode == "front":
         if x == tracklength-2:
             spec1 = lambda x, y, x1, y1, x2, y2: (y==1 and y2==2 and x2==x and y1==2 and (x1==x+1 or x1==x+2))
@@ -757,7 +810,7 @@ def check_st_A_int_G(state, tracklength, mode):
             flg = spec(x,y,x1,y1,x2,y2)
         spec_merged = lambda x, y, x1, y1, x2, y2: ((x2==x-1 or x1==x-1) and (y==2) and (y1==2) and (y2==2))
         flg = flg or spec_merged(x,y,x1,y1, x2, y2)
-        
+
     elif mode == "back":
         if x == tracklength-2:
             spec = lambda x, y, x1, y1, x2, y2: (y==1 and y1==2 and (x1==x+1 or x1==x+2) and (x2 != x+1))
@@ -816,7 +869,7 @@ def forward_step_tester(tracklength, x, y, x1, y1, x2, y2):
         new_steps.append((x1+1, 2, x2+1, 2))
         new_steps.append((x1+1, 2, x2+1, 1))
         new_steps.append((x1+1, 1, x2+1, 2))
-    
+
     for ti in new_steps:
         if ti[0] == x and ti[1] == y:
             new_steps.remove(ti)
@@ -845,7 +898,7 @@ def dump_graph_as_figure(g):
 
 def check_all_states_in_fp(tracklength, agentlist, w_set, winning_set, aut):
     # winning_set = w_set.find_winning_set(aut)
-    print_flg = True
+    print_flg = False
     num_test_agents = len(agentlist)
     states_in_winset = []
     states_outside_winset = []
@@ -869,7 +922,7 @@ def check_all_states_in_fp(tracklength, agentlist, w_set, winning_set, aut):
                             states_in_winset.append(state)
                         else:
                             states_outside_winset.append(state)
-                        if print_flg: 
+                        if print_flg:
                             print(state)
                             print(check_bdd)
     else:
@@ -888,8 +941,10 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                 for x1 in range(1,tracklength+1):
                     state = {'x': x, 'y': y, 'x1': x1}
                     check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-                    print(state)
-                    print(check_bdd)
+                    if PRINT_STATES_IN_COMPUTATION:
+                        print(state)
+                        print(check_bdd)
+
     # x2 < x1, since x2 is a second tester
     elif num_test_agents ==2:
         for x in range(1,tracklength+1):
@@ -902,8 +957,9 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
                             check_flg = check_st_A_int_G(state, tracklength, mode)
                             if check_flg:
                                 states_in_winset.append(state)
-                                print(state)
-                                print(check_bdd)
+                                if PRINT_STATES_IN_COMPUTATION:
+                                    print(state)
+                                    print(check_bdd)
                             else:
                                 states_outside_winset.append(state)
                         else:
@@ -912,9 +968,48 @@ def check_all_states_in_winset(tracklength, agentlist, w_set, winning_set, aut, 
         print('Too many agents')
     return states_in_winset, states_outside_winset
 
+
+## Check if states are in winning set for receding horizon winning sets:
+# Filtering states in the winning set:
+def check_all_states_in_winset_rh(tracklength, agentlist, w_set, winning_set, aut, mode, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set):
+    # winning_set = w_set.find_winning_set(aut)
+    num_test_agents = len(agentlist)
+    states_in_winset = []
+    states_outside_winset = []
+    if num_test_agents == 1:
+        for x in range(1,tracklength+1):
+            for y in range(1,2+1):
+                for x1 in range(1,tracklength+1):
+                    state = {'x': x, 'y': y, 'x1': x1}
+                    check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+                    if PRINT_STATES_IN_COMPUTATION:
+                        print(state)
+                        print(check_bdd)
+
+    # x2 < x1, since x2 is a second tester
+    elif num_test_agents ==2:
+        for state_node in start_set:
+            state = ver2st_dict[state_node]
+            check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+            if check_bdd:
+                state_node = get_dict_inv(ver2st_dict, state)
+                check_flg = check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G)
+                if check_flg:
+                    states_in_winset.append(state)
+                    if PRINT_STATES_IN_COMPUTATION:
+                        print(state)
+                        print(check_bdd)
+                else:
+                    states_outside_winset.append(state)
+            else:
+                states_outside_winset.append(state)
+    else:
+        print('Too many agents')
+    return states_in_winset, states_outside_winset
+
 # Least fixpoint computation:
 # General comment: Write specifications as a closed system and then open it
-# 
+#
 def descendants(source, constrain, aut, future=True):
     """Existential descendants of `source` in `constrain`.
     @param future: if `True`, then apply an image operation
@@ -939,7 +1034,7 @@ def desc_operator():
        qold = q
        q |= post
        q &= constrain
-       
+
 def ee_image(source, aut):
     """Existential image."""
     u = aut.action[SYS]
@@ -956,7 +1051,7 @@ def get_winset(tracklength, merge_setting):
         # print(gr_spec.pretty())
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
-        
+
     elif merge_setting == "front":
         ego_spec, test_spec = specs_car_merge_front(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
         gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
@@ -970,12 +1065,12 @@ def get_winset(tracklength, merge_setting):
         # print(gr_spec.pretty())
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
-   
+
     else:
         print("Incorrect merge setting (between/front/back) ")
-    
+
     aut = w_set.make_compatible_automaton(gr_spec)
-    # g = synthesize_some_controller(aut) 
+    # g = synthesize_some_controller(aut)
     agentlist = ['x1', 'x2']
     fp = w_set.find_winning_set(aut)
     # print("Printing states in fixpoint: ")
@@ -995,7 +1090,7 @@ if __name__ == '__main__':
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
-        # g = synthesize_some_controller(aut) 
+        # g = synthesize_some_controller(aut)
         # if g is None:
         #     print("Inconsistent specifications")
         # else:
@@ -1003,7 +1098,7 @@ if __name__ == '__main__':
         agentlist = ['x1', 'x2']
         pdb.set_trace()
         states_in_winset, states_out_winset = check_all_states(tracklength, agentlist, w_set, aut)
-    
+
     if ex==5: # Constructing abstraction for the merge example
         tracklength = 10
         ego_spec, test_spec = specs_for_entire_track(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
@@ -1012,10 +1107,10 @@ if __name__ == '__main__':
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
         aut = w_set.make_compatible_automaton(gr_spec)
-        # g = synthesize_some_controller(aut) 
+        # g = synthesize_some_controller(aut)
         agentlist = ['x1', 'x2']
         states_in_winset, states_out_winset = check_all_states(tracklength, agentlist, w_set, aut)
-        
+
     if ex==4: # Constru
         tracklength = 4
         ego_spec, test_spec = specs_car_merge(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
@@ -1024,9 +1119,9 @@ if __name__ == '__main__':
         w_set = WinningSet()
         w_set.set_spec(gr_spec)
 
-        
+
         aut = w_set.make_compatible_automaton(gr_spec)
-        # g = synthesize_some_controller(aut) 
+        # g = synthesize_some_controller(aut)
         agentlist = ['x1', 'x2']
         fp = w_set.find_winning_set(aut)
         print("Printing states in fixpoint: ")
@@ -1035,9 +1130,9 @@ if __name__ == '__main__':
         print("Printing states in winning set: ")
         mode="between"
         states_in_winset = check_all_states_in_winset(tracklength, agentlist, w_set, fp, aut, mode)
-    # Check paranthesizing: 
+    # Check paranthesizing:
     # ego_spec_init = r' /\ '.join(f'({e})' for e in ego_spec.init)
-    
+
     pdb.set_trace()
     ego_spec_init = stx.conj(ego_spec.init)
     test_spec_init = stx.conj(test_spec.init)
@@ -1045,7 +1140,7 @@ if __name__ == '__main__':
     print(expr)
     winning_set_from_init = aut.add_expr(expr)
     sin, sout = check_all_states(tracklength, agentlist, winning_set_from_init, aut)
-    
+
     pdb.set_trace()
     if omega_intf.is_circular(gr_spec):
         raise AssertionError('detected circularity in the specification')

@@ -3,12 +3,13 @@ A minimal implementation of Monte Carlo tree search (MCTS) in Python 3
 Luke Harold Miles, July 2019, Public Domain Dedication
 See also https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
 https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1
+
+--- modified for 'Compositional Testing'
 """
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import math
 from ipdb import set_trace as st
-from gridworld import GridWorld
 
 class MCTS:
     "Monte Carlo tree searcher. First rollout the tree then choose a move."
