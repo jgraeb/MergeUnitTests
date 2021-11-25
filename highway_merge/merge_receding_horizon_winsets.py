@@ -1,9 +1,6 @@
 import tulip as tulip
 import numpy as np
 from tulip.spec import form
-# from scene import Scene
-# from agent import Agent
-# from map import Map
 import networkx as nx
 from omega.symbolic import temporal as trl
 import _pickle as pickle
@@ -26,7 +23,7 @@ from ipdb import set_trace as st
 from tulip import transys, spec, synth
 import sys
 sys.path.append('..')
-from test_parameters import TRACKLENGTH, MERGE_SETTING
+from highway_merge.test_parameters import TRACKLENGTH, MERGE_SETTING
 try:
     from correct_win_set import get_winset, WinningSet, make_grspec, check_all_states_in_fp, check_all_states_in_winset, check_all_states_in_winset_rh, Spec
 except:

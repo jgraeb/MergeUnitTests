@@ -5,19 +5,21 @@
 # Caltech, March 2021                                                       #
 #                                                                           #
 #############################################################################
+import sys
+sys.path.append('..')
 from random import choice
 import numpy as np
-from scene import Scene
-from agent import Agent
-from map import Map
+from components.scene import Scene
+from components.agent import Agent
+from components.map import Map
 from winning_set.winning_set import WinningSet, specs_for_entire_track, make_grspec, create_shield
 import _pickle as pickle
 import os
 from copy import deepcopy
 from ipdb import set_trace as st
-from winning_set.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
+from highway_merge.merge_receding_horizon_winsets import get_tester_states_in_winsets, check_system_states_in_winset
 from helper import save_ws_comp_result, load_ws
-from test_parameters import TRACKLENGTH, MERGE_SETTING
+from highway_merge.test_parameters import TRACKLENGTH, MERGE_SETTING
 
 def synthesize_guide():
     MERGE_SETTING = 'between'

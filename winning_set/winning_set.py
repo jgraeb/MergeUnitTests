@@ -10,9 +10,8 @@ from random import choice
 # from mcts import MCTS, Node
 import numpy as np
 from tulip.spec import form
-from scene import Scene
-from agent import Agent
-from map import Map
+import sys
+sys.path.append('..')
 import networkx as nx
 from omega.symbolic import temporal as trl
 import _pickle as pickle
@@ -771,7 +770,7 @@ def specs_two_testers(tracklength):
     # sys_safe |= {'x=0 -> X(x=0 && x=1)'}
     sys_safe |= {'x='+str(tracklength-1)+' -> X(x='+str(tracklength-1)+' && x='+str(tracklength)+')'}
     sys_safe |= {'x='+str(tracklength)+'-> X(x='+str(tracklength)+')'}
-    
+
     # testers
     tester_vars = {}
     tester_vars['x1'] = (2,tracklength)
@@ -964,7 +963,7 @@ def check_all_states(tracklength, agentlist, w_set, aut):
                         print(check_bdd)
     else:
         print('Too many agents')
-    
+
     return states_in_winset, states_outside_winset
 
 def get_state_dict(tracklength):
@@ -1061,7 +1060,7 @@ if __name__ == '__main__':
         aut = w_set.make_compatible_automaton(gr_spec)
         agentlist = ['x1', 'x2']
         states_in_winset, states_out_winset = check_all_states(tracklength, agentlist, w_set, aut)
-        
+
     elif ex==6: # Constructing abstraction for the merge example
         tracklength = 4
         ego_spec, test_spec = specs_two_testers(tracklength) #spec_merge_in_front()#all_system(3)#spec_merge_in_front()#test_spec()#specs_for_entire_track(5)
@@ -1074,7 +1073,7 @@ if __name__ == '__main__':
         agentlist = ['x1', 'x2']
         # pdb.set_trace()
         states_in_winset, states_out_winset = check_all_states(tracklength, agentlist, w_set, aut)
-    
+
     winning_set = w_set.find_winning_set(aut)
     pdb.set_trace()
     # (x,y), (x1, y1), (x2,y2) are the positions of the system under test, the leading tester car, and the second tester car respectively. Domains of the position values can be found in the variable declarations in the specs_for_entire_track() function.

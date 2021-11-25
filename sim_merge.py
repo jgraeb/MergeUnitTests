@@ -5,18 +5,20 @@
 # Caltech, March 2021                                                       #
 #                                                                           #
 #############################################################################
+import sys
+sys.path.append('..')
 from random import choice
-from mcts import MCTS, Node
+from tree_search.mcts import MCTS, Node
 import numpy as np
-from scene import Scene
-from agent import Agent
-from map import Map
+from components.scene import Scene
+from components.agent import Agent
+from components.map import Map
 import os
 from copy import deepcopy
 from ipdb import set_trace as st
 from helper import *
-from gridworld import GridWorld
-from test_parameters import TRACKLENGTH, MERGE_SETTING
+from highway_merge.gridworld import GridWorld
+from highway_merge.test_parameters import TRACKLENGTH, MERGE_SETTING
 
 
 def new_init_scene():
@@ -40,7 +42,7 @@ def new_World():
 def run_random_sim(maxstep):
     '''Run a random simulation / for debugging - not used in MCTS!!!'''
     # run a game
-    output_dir = os.getcwd()+'/saved_traces/'
+    output_dir = os.getcwd()+'/highway_merge/saved_traces/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'

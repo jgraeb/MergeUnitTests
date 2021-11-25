@@ -13,15 +13,14 @@ Created on Sat Oct  2 15:29:45 2021
 #                                                                           #
 #############################################################################
 from __future__ import print_function
+import sys
+sys.path.append('..')
 from random import choice
 # from mcts import MCTS, Node
 import numpy as np
 from tulip.spec import form
 import sys
 sys.path.append('..')
-from scene import Scene
-from agent import Agent
-from map import Map
 import networkx as nx
 from networkx import NetworkXNoPath
 from omega.symbolic import temporal as trl
