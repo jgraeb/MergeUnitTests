@@ -1,0 +1,5 @@
+*.csv
+*.png
+*.mypy_cache*
+*.pyc
+*.gif
