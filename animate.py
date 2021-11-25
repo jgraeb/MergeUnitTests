@@ -123,7 +123,7 @@ def make_animation():
     output_dir = os.getcwd()+'/animations/gifs/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    traces_file = os.getcwd()+'/saved_traces/sim_trace.p'
+    traces_file = os.getcwd()+'/highway_merge/saved_traces/sim_trace.p'
     traces_to_animation(traces_file, output_dir)
 
 if __name__ == '__main__':

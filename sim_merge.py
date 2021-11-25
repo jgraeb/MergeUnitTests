@@ -86,7 +86,7 @@ def play_game():
     trace=[]
     tree = MCTS()
     # save the trace
-    output_dir = os.getcwd()+'/saved_traces/'
+    output_dir = os.getcwd()+'/highway_merge/saved_traces/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
@@ -178,7 +178,7 @@ def append_trace(trace_dict, agent):
 
 if __name__ == '__main__':
     #run_random_sim(10)
-    output_dir = os.getcwd()+'/saved_traces/'
+    output_dir = os.getcwd()+'/highway_merge/saved_traces/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
