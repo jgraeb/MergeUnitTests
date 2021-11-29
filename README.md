@@ -12,6 +12,7 @@ Packages: see **requirements.txt** <br />
 ## Instructions
 1. Install the required packages by running 'pip install -r requirements.txt' <br />
 2. Run sim_merge.py for a demonstration of the highway merge <br />
+3. Intersection example in progress
 
 ## Example
 ### Highway Merge
