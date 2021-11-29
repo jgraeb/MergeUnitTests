@@ -33,6 +33,8 @@ def draw_map(map):
     ax.axis('equal')
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_min, y_max)
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
 
     # fill in the road regions
     road_tiles = []
