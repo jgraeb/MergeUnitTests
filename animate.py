@@ -13,68 +13,148 @@ from matplotlib.ticker import (AutoMinorLocator, MultipleLocator,
 from matplotlib.collections import PatchCollection
 import imageio
 
-TILESIZE = 20
+TILESIZE = 50
 CAR_COLORS = ['blue', 'red']
+ORIENTATIONS = {'n': 270, 'e': 0, 's': 90,'w':180, 'ne':315, 'nw':225, 'se':45, 'sw':135}
+START_CROSSWALK = 2
+END_CROSSWALK = 6
+CROSSWALK_V = 2
+CROSSWALK_LOCATIONS = dict()
+for i, num in enumerate(range(2*START_CROSSWALK,2*(END_CROSSWALK+1))):
+    CROSSWALK_LOCATIONS.update({i: (num/2, CROSSWALK_V)})
+# st()
 
 main_dir = os.path.dirname(os.path.dirname(os.path.realpath("__file__")))
 car_figs = dict()
 for color in CAR_COLORS:
     car_figs[color] = main_dir + '/CompositionalTesting/imglib/' + color + '_car.png'
+ped_figure = main_dir + '/CompositionalTesting/imglib/pedestrian_img.png'
 
 
-def draw_map(map):
-    lanes = map.lanes
-    width = map.width
-    x_min = 0
-    x_max = width * TILESIZE
-    y_min = 0
-    y_max = lanes * TILESIZE
-    #x_min, x_max, y_min, y_max = get_map_corners(map)
-    ax.axis('equal')
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
+def draw_map(map, merge = False):
+    if merge:
+        lanes = map.lanes
+        width = map.width
+        x_min = 0
+        x_max = width * TILESIZE
+        y_min = 0
+        y_max = lanes * TILESIZE
+        #x_min, x_max, y_min, y_max = get_map_corners(map)
+        ax.axis('equal')
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
 
-    # fill in the road regions
-    road_tiles = []
-    width_tiles = np.arange(0,width+1)*TILESIZE
-    lanes_tiles = np.arange(0,lanes+1)*TILESIZE
+        # fill in the road regions
+        road_tiles = []
+        width_tiles = np.arange(0,width+1)*TILESIZE
+        lanes_tiles = np.arange(0,lanes+1)*TILESIZE
 
-    for i in np.arange(lanes):
-        for k in np.arange(width):
-            tile = patches.Rectangle((width_tiles[k],lanes_tiles[i]),TILESIZE,TILESIZE,linewidth=1,facecolor='k', alpha=0.4)
-            road_tiles.append(tile)
-    ax.add_collection(PatchCollection(road_tiles, match_original=True))
+        for i in np.arange(lanes):
+            for k in np.arange(width):
+                tile = patches.Rectangle((width_tiles[k],lanes_tiles[i]),TILESIZE,TILESIZE,linewidth=1,facecolor='k', alpha=0.4)
+                road_tiles.append(tile)
+        ax.add_collection(PatchCollection(road_tiles, match_original=True))
 
-    plt.gca().invert_yaxis()
-
-def draw_timestamp(t):
-    ax.text(0.5,0.7,t, transform=plt.gcf().transFigure,fontsize='large',
-         bbox={"boxstyle" : "circle", "color":"white", "ec":"black"})
-    pass
-
-def draw_car(car_data):
-    if car_data[0]=='system':
-        color = 'red'
+        plt.gca().invert_yaxis()
     else:
-        color = 'blue'
-    theta_d = 0
-    name, x_tile, y_tile = car_data
-    x = (x_tile-1) * TILESIZE
-    y = (y_tile-1) * TILESIZE
-    car_fig = Image.open(car_figs[color])
-    car_fig = car_fig.rotate(theta_d, expand=False)
+        # st()
+        size = max(map.keys())
+        x_min = 0
+        x_max = (size[0]+1) * TILESIZE
+        y_min = 0
+        y_max = (size[1]+1) * TILESIZE
+        #x_min, x_max, y_min, y_max = get_map_corners(map)
+        ax.axis('equal')
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
+
+        # fill in the road regions
+        road_tiles = []
+        width_tiles = np.arange(0,size[0]+1)*TILESIZE
+        lanes_tiles = np.arange(0,size[1]+1)*TILESIZE
+
+        for i in np.arange(0,size[0]+1):
+            for k in np.arange(0,size[1]+1):
+                if map[(i,k)] != '*':
+                    tile = patches.Rectangle((width_tiles[k],lanes_tiles[i]),TILESIZE,TILESIZE,linewidth=1,facecolor='k', alpha=0.4)
+                    road_tiles.append(tile)
+        ax.add_collection(PatchCollection(road_tiles, match_original=True))
+
+        # # now add crosswalk on top
+        # crosswalk_tiles = []
+        # for item in CROSSWALK_LOCATIONS.keys():
+        #     st()
+        #     width = np.arange(0,size[0]+1)*TILESIZE
+        #     lanes = np.arange(0,size[1]+1)*TILESIZE
+        #     tile = patches.Rectangle((width_tiles[k],lanes_tiles[i]),TILESIZE,TILESIZE,linewidth=1,facecolor='k', alpha=0.4)
+        #     crosswalk_tiles.append(tile)
+
+        plt.gca().invert_yaxis()
+
+def draw_timestamp(t, merge = False):
+    if merge:
+        ax.text(0.5,0.7,t, transform=plt.gcf().transFigure,fontsize='large',
+             bbox={"boxstyle" : "circle", "color":"white", "ec":"black"})
+    else:
+        ax.text(0.3,0.7,t, transform=plt.gcf().transFigure,fontsize='large',
+             bbox={"boxstyle" : "circle", "color":"white", "ec":"black"})
+
+def draw_pedestrian(ped_data):
+    name, _, _, cwloc = ped_data
+    x_tile = CROSSWALK_LOCATIONS[cwloc][1]
+    y_tile = CROSSWALK_LOCATIONS[cwloc][0]
+    x = (x_tile) * TILESIZE
+    y = (y_tile) * TILESIZE - TILESIZE/2
+    ped_fig = Image.open(ped_figure)
+    ped_fig = ped_fig.rotate(180, expand=False)
     offset = 0.1
-    ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
+    ax.imshow(ped_fig, zorder=1, interpolation='none', extent=[x+5, x+TILESIZE-5, y+2, y+TILESIZE-2])
 
-def plot_ego_cars(agents):
+
+def draw_car(car_data, merge = False):
+    if merge:
+        if car_data[0]=='system':
+            color = 'red'
+        else:
+            color = 'blue'
+        theta_d = 0
+        name, x_tile, y_tile = car_data
+        x = (x_tile-1) * TILESIZE
+        y = (y_tile-1) * TILESIZE
+        car_fig = Image.open(car_figs[color])
+        car_fig = car_fig.rotate(theta_d, expand=False)
+        offset = 0.1
+        ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
+    else:
+        if car_data[0]=='ego':
+            color = 'red'
+        else:
+            color = 'blue'
+        # st()
+        name, y_tile, x_tile, orientation = car_data
+        theta_d = ORIENTATIONS[orientation]
+        x = (x_tile) * TILESIZE
+        y = (y_tile) * TILESIZE
+        car_fig = Image.open(car_figs[color])
+        car_fig = car_fig.rotate(theta_d, expand=False)
+        offset = 0.1
+        ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
+
+def plot_sys_cars(agents):
     for i, agent in enumerate(agents):
         draw_car(agent)
 
-def plot_env_cars(agents):
+def plot_tester_cars(agents):
     for i, agent in enumerate(agents):
         draw_car(agent)
+
+def plot_peds(agents):
+    for i,agent in enumerate(agents):
+        draw_pedestrian(agent)
 
 def animate_images(output_dir):
     # Create the frames
@@ -111,10 +191,12 @@ def traces_to_animation(filename, output_dir):
         print(t)
         plt.gca().cla()
         draw_map(map)
-        ego_agents = traces[t].ego
-        env_agents = traces[t].env
-        plot_ego_cars(ego_agents)
-        plot_env_cars(env_agents)
+        sys_agents = traces[t].ego
+        tester_agents = traces[t].env
+        ped_agents = traces[t].peds
+        plot_sys_cars(sys_agents)
+        plot_tester_cars(tester_agents)
+        plot_peds(ped_agents)
         draw_timestamp(t)
         plot_name = str(t).zfill(5)
         img_name = output_dir+'/plot_'+plot_name+'.png'
@@ -125,7 +207,7 @@ def make_animation():
     output_dir = os.getcwd()+'/animations/gifs/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    traces_file = os.getcwd()+'/highway_merge/saved_traces/sim_trace.p'
+    traces_file = os.getcwd()+'/intersection/saved_traces/sim_trace.p'
     traces_to_animation(traces_file, output_dir)
 
 if __name__ == '__main__':
