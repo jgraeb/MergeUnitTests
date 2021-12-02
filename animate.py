@@ -17,7 +17,7 @@ TILESIZE = 50
 CAR_COLORS = ['blue', 'red']
 ORIENTATIONS = {'n': 270, 'e': 0, 's': 90,'w':180, 'ne':315, 'nw':225, 'se':45, 'sw':135}
 START_CROSSWALK = 2
-END_CROSSWALK = 6
+END_CROSSWALK = 5
 CROSSWALK_V = 2
 CROSSWALK_LOCATIONS = dict()
 for i, num in enumerate(range(2*START_CROSSWALK,2*(END_CROSSWALK+1))):
@@ -84,14 +84,20 @@ def draw_map(map, merge = False):
                     road_tiles.append(tile)
         ax.add_collection(PatchCollection(road_tiles, match_original=True))
 
-        # # now add crosswalk on top
-        # crosswalk_tiles = []
-        # for item in CROSSWALK_LOCATIONS.keys():
-        #     st()
-        #     width = np.arange(0,size[0]+1)*TILESIZE
-        #     lanes = np.arange(0,size[1]+1)*TILESIZE
-        #     tile = patches.Rectangle((width_tiles[k],lanes_tiles[i]),TILESIZE,TILESIZE,linewidth=1,facecolor='k', alpha=0.4)
-        #     crosswalk_tiles.append(tile)
+        # now add crosswalk on top
+        crosswalk_tiles = []
+        for item in CROSSWALK_LOCATIONS.keys():
+            if item % 2 == 0:
+                color = 'silver'
+                alpha = 0.5
+            else:
+                color = 'k'
+                alpha = 0.5
+            width = CROSSWALK_LOCATIONS[item][1]*TILESIZE
+            lanes = CROSSWALK_LOCATIONS[item][0]*TILESIZE
+            tile = patches.Rectangle((width,lanes),TILESIZE,TILESIZE/2,linewidth=1,facecolor=color, alpha=alpha)
+            crosswalk_tiles.append(tile)
+        ax.add_collection(PatchCollection(crosswalk_tiles, match_original=True))
 
         plt.gca().invert_yaxis()
 
@@ -112,7 +118,7 @@ def draw_pedestrian(ped_data):
     ped_fig = Image.open(ped_figure)
     ped_fig = ped_fig.rotate(180, expand=False)
     offset = 0.1
-    ax.imshow(ped_fig, zorder=1, interpolation='none', extent=[x+5, x+TILESIZE-5, y+2, y+TILESIZE-2])
+    ax.imshow(ped_fig, zorder=1, interpolation='none', extent=[x+10, x+TILESIZE-10, y+2, y+TILESIZE-2])
 
 
 def draw_car(car_data, merge = False):
@@ -128,7 +134,7 @@ def draw_car(car_data, merge = False):
         car_fig = Image.open(car_figs[color])
         car_fig = car_fig.rotate(theta_d, expand=False)
         offset = 0.1
-        ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
+        ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+5, x+TILESIZE-5, y+5, y+TILESIZE-5])
     else:
         if car_data[0]=='ego':
             color = 'red'
