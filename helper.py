@@ -20,13 +20,16 @@ def save_trace(filename,trace): # save the trace in pickle file for animation
 
 def save_scene(gridworld,trace): # save each scene in trace
     print('Saving scene {}'.format(gridworld.timestep))
-    ego_snapshot = []
-    env_snapshot = []
-    for agent in gridworld.ego_agents:
-        ego_snapshot.append((agent.name,agent.x,agent.y))
-    for agent in gridworld.env_agents:
-        env_snapshot.append((agent.name,agent.x,agent.y))
-    current_scene = Scene(gridworld.timestep, gridworld.map, ego_snapshot, env_snapshot)
+    sys_snapshot = []
+    tester_snapshot = []
+    ped_snapshot = []
+    for agent in gridworld.sys_agents:
+        sys_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
+    for agent in gridworld.tester_cars:
+        tester_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
+    for ped in gridworld.tester_peds:
+        ped_snapshot.append((ped.name, ped.x,ped.y, ped.cwloc))
+    current_scene = Scene(gridworld.timestep, gridworld.map, sys_snapshot, tester_snapshot, ped_snapshot)
     trace.append(current_scene)
     gridworld.timestep += 1
     gridworld.trace = trace
