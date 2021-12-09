@@ -394,8 +394,9 @@ if __name__ == '__main__':
 
     intersectionfile = 'intersectionfile.txt'
     map, crosswalk = create_intersection_from_file(intersectionfile)
-    get_graph(map, crosswalk)
+    G, sys_state2vertex, test_state2vertex = get_graph(map, crosswalk)
     st()
+    # Old:
     G, sys_state2vertex, test_state2vertex = get_all_states()
     # goal_sys_states = find_goal_state(sys_state2vertex, goal_loc)
     # goal_test_states = find_goal_state(test_state2vertex, goal_loc)
