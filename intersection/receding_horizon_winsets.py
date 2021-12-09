@@ -35,6 +35,9 @@ from abstraction_intersection import get_graph, create_intersection_from_file
 # Intuition: This is similar to specifying the terminal condition in MPC
 # Depending on states that satisfy the goal_lambda condition, those are added to the Wj_dict
 # Get Vj for all goals
+'''
+MODIFY
+'''
 def get_Vj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda):
     """
     Parameters
@@ -62,6 +65,9 @@ def get_Vj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker
 
 # Function to get Vi_j, which is the set of all states that are j*horizon steps
 # (1 step = 1 round of play) away from set from progress goal []<>i:
+'''
+MODIFY
+'''
 def get_Vj(tracklength, G, st2ver_dict, ver2st_dict, goal):
     """
     Parameters
@@ -96,6 +102,9 @@ def get_Vj(tracklength, G, st2ver_dict, ver2st_dict, goal):
 
 
 # Ego safe controller for left turn requirement:
+'''
+MODIFY
+'''
 def get_ego_safety():
     ego_safe = set()
     # Fill in ego safety specifications:
@@ -152,6 +161,9 @@ def construct_spec_set_membership(Vj, ver2st_dict):
     spec += ")"
     return spec
 
+'''
+MODIFY
+'''
 def get_test_safety():
     '''
     Function to specify safety specifications for the test environments
@@ -168,9 +180,12 @@ def get_test_safety():
     return test_safe
 
 # Function to add merge specifications:
+'''
+MODIFY
+'''
 def add_goal_specs(test_safe):
     """
-    Goal specifications for the intersection example
+    Goal specifications for the intersection example for the test environment
     Parameters
     ----------
     test_safe : Set of initial safety specifications
@@ -185,7 +200,13 @@ def add_goal_specs(test_safe):
     return test_safe
 
 # Function to get all possible states in the graph of all system and environment transitions:
+'''
+MODIFY
+'''
 def specs_car_rh():
+    '''
+        Constructing specifications for receding horizon iteration.
+    '''
     ego_vars = {}
     ego_vars['y'] = (0,7)
     ego_vars['z'] = (0,7)
@@ -220,6 +241,9 @@ def specs_car_rh():
 # Function to get all receding horizon winning sets:
 # tracklength: length of the track; merge_setting: between/ in front/ behind
 def get_winset_rh(Vij, state_tracker, ver2st_dict,ego_spec_orginal, test_spec_orginal, state_test_dict, state_system_dict, G):
+    '''
+    Getting the winning set for each receding horizon specification
+    '''
     # Get Wij_dict: The list of Vij
     # Existing safety, progress and init properties
     # ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict = specs_car_rh(tracklength, merge_setting)
@@ -383,6 +407,9 @@ def check_system_states_in_winset(origin_state, state, ver2st_dict, state_tracke
                 progress = True
     return progress
 
+'''
+MODIFY: variable names
+'''
 def find_next_states(state, ver2st_dict, state_tracker):
     """
     Propagate forward to check if the system state is in the winning set. Find next states from the current state.
@@ -398,6 +425,9 @@ def find_next_states(state, ver2st_dict, state_tracker):
     actions =  {} # Actions
     return next_states
 
+'''
+MODIFY: variable names
+'''
 def make_dict_form(sys_state, tester_states):
     '''
     Make dictionary form of sys_state and tester_states
