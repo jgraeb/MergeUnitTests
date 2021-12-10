@@ -33,7 +33,6 @@ from collections import OrderedDict as od
 
 
 # STATE_DICT, ACTIONS_DICT = make_state_dictionary_for_specification()
-
 def create_intersection_from_file(intersectionfile):
     map = od()
     f = open(intersectionfile, 'r')
@@ -54,24 +53,24 @@ def create_intersection_from_file(intersectionfile):
     return map, crosswalk
 
 def get_system_states(state_dict):
-    x_min_grid = 0
-    x_max_grid = 7
+    z_min_grid = 0
+    z_max_grid = 7
     y_min_grid = 0
     y_max_grid = 7
     sys_states = []
-    for ii in range(x_min_grid,x_max_grid):
+    for ii in range(z_min_grid,z_max_grid):
         for jj in range(y_min_grid,y_max_grid):
             if (ii,jj) in state_dict:
                 sys_states.append((ii,jj))
     return sys_states
 
 def get_tester_states(state_dict):
-    x_min_grid = 0
-    x_max_grid = 7
+    z_min_grid = 0
+    z_max_grid = 7
     y_min_grid = 0
     y_max_grid = 7
     tester_states = []
-    for ii in range(x_min_grid,x_max_grid):
+    for ii in range(z_min_grid,z_max_grid):
         for jj in range(y_min_grid,y_max_grid):
             if (ii,jj) in state_dict:
                 tester_states.append((ii,jj))
@@ -190,28 +189,28 @@ def find_next_state_dict(state_dict):
     return next_state_dict
 
 def get_graph(state_dict, crosswalk):
-    x_max_sys = 7
-    x_min_sys = 3
+    z_max_sys = 7
+    z_min_sys = 3
     y_max_sys = 4
     y_min_sys = 0
     sys_states = []
-    for ii in range(x_min_sys, x_max_sys+1):
+    for ii in range(z_min_sys, z_max_sys+1):
         for jj in range(y_min_sys, y_max_sys+1):
             if (ii,jj) in state_dict:
                 if state_dict[(ii,jj)] == '↑' or state_dict[(ii,jj)] == '←' or state_dict[(ii,jj)] == '+':
                     sys_states.append((ii,jj))
-    x_max_test = 7
-    x_min_test = 0
+    z_max_test = 7
+    z_min_test = 0
     y_test = 3
     tester_states = []
-    for ii in range(x_min_test, x_max_test):
+    for ii in range(z_min_test, z_max_test):
             if (ii,y_test) in state_dict:
                 tester_states.append((ii,y_test))
 
     ped_cw_loc_min = 0
     ped_cw_loc_max = 7
     ped_states = []
-    for ii in range(x_min_test, x_max_test):
+    for ii in range(z_min_test, z_max_test):
             if (ii) in crosswalk:
                 ped_states.append((ii))
 
@@ -245,7 +244,7 @@ def get_graph(state_dict, crosswalk):
         # For each state depending on if it is a tester or system state, find the next state
         next_sys_states = find_next_sys_states(state_dict,next_state_dict, state, crosswalk)
         next_test_states = find_next_tester_states(state, next_state_dict, crosswalk)
-        # st()
+        st()
         next_vertices = []
         next_sys_vertices = []
         next_test_vertices = []
@@ -278,8 +277,8 @@ def get_graph(state_dict, crosswalk):
 def get_all_states():
     state_dict, actions_dict = make_state_dictionary_for_specification()
     # to do get these from the file
-    x_min_grid = 0
-    x_max_grid = 7
+    z_min_grid = 0
+    z_max_grid = 7
     y_min_grid = 0
     y_max_grid = 7
     # create the list of states - system states and tester states and save a dictionary with the mapping from the number to the state
@@ -380,7 +379,7 @@ def get_winset_rh(tracklength, merge_setting, timestep, horizon):
 
     aut = w_set.make_compatible_automaton(gr_spec)
     # g = synthesize_some_controller(aut)
-    agentlist = ['x1', 'x2']
+    agentlist = ['z1', 'z2']
     fp = w_set.find_winning_set(aut)
     # print("Printing states in fixpoint: ")
     states_in_fp, states_out_fp = check_all_states_in_fp(tracklength, agentlist, w_set, fp, aut)
