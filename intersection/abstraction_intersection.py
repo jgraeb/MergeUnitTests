@@ -144,12 +144,12 @@ def find_next_sys_states(state_dict, next_state_dict, state, crosswalk):
     # st()
     return next_sys_state_combinations
 
-def find_goal_state(state2vertex, goal_loc):
-    goal_states = []
-    for state in state2vertex:
-        if state[0]==goal_loc:
-            goal_states.append(state2vertex[state])
-    return goal_states
+# def find_goal_state(state2vertex, goal_loc):
+#     goal_states = []
+#     for state in state2vertex:
+#         if state[0]==goal_loc:
+#             goal_states.append(state2vertex[state])
+#     return goal_states
 
 def find_next_state_dict(state_dict):
     next_state_dict = dict()
@@ -223,9 +223,9 @@ def get_graph(state_dict, crosswalk):
 
     nstates = len(nodes)
     G = nx.DiGraph()
-    V = np.linspace(1, 1, 2 * nstates)
+    V = np.linspace(1, 2*nstates, 2*nstates)
     G.add_nodes_from(V)
-
+    
     state2vertex = dict()
     sys_state2vertex = dict()
     test_state2vertex = dict()
