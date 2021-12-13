@@ -15,6 +15,7 @@ import imageio
 
 TILESIZE = 50
 CAR_COLORS = ['blue', 'red']
+LIGHT_COLORS = ['green', 'red', 'yellow']
 ORIENTATIONS = {'n': 270, 'e': 0, 's': 90,'w':180, 'ne':315, 'nw':225, 'se':45, 'sw':135}
 START_CROSSWALK = 2
 END_CROSSWALK = 5
@@ -30,6 +31,9 @@ for color in CAR_COLORS:
     car_figs[color] = main_dir + '/CompositionalTesting/imglib/' + color + '_car.png'
 ped_figure = main_dir + '/CompositionalTesting/imglib/pedestrian_img.png'
 
+light_figs = dict()
+for color in LIGHT_COLORS:
+    light_figs[color] = main_dir + '/CompositionalTesting/imglib/' + color + '_light.png'
 
 def draw_map(map, merge = False):
     if merge:
@@ -118,7 +122,7 @@ def draw_pedestrian(ped_data):
     ped_fig = Image.open(ped_figure)
     ped_fig = ped_fig.rotate(180, expand=False)
     offset = 0.1
-    ax.imshow(ped_fig, zorder=1, interpolation='none', extent=[x+10, x+TILESIZE-10, y+2, y+TILESIZE-2])
+    ax.imshow(ped_fig, zorder=1, interpolation='bilinear', extent=[x+10, x+TILESIZE-10, y+2, y+TILESIZE-2])
 
 
 def draw_car(car_data, merge = False):
@@ -148,7 +152,7 @@ def draw_car(car_data, merge = False):
         car_fig = Image.open(car_figs[color])
         car_fig = car_fig.rotate(theta_d, expand=False)
         offset = 0.1
-        ax.imshow(car_fig, zorder=1, interpolation='none', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
+        ax.imshow(car_fig, zorder=1, interpolation='bilinear', extent=[x+2, x+TILESIZE-2, y+2, y+TILESIZE-2])
 
 def plot_sys_cars(agents):
     for i, agent in enumerate(agents):
@@ -161,6 +165,20 @@ def plot_tester_cars(agents):
 def plot_peds(agents):
     for i,agent in enumerate(agents):
         draw_pedestrian(agent)
+
+def draw_traffic_light(timestep):
+    if timestep < 12:
+        color = 'green'
+    elif 12 <= timestep <= 15:
+        color = 'yellow'
+    else:
+        color = 'red'
+    theta_d = 180
+    light_fig = Image.open(light_figs[color])
+    light_fig = light_fig.rotate(theta_d, expand=False)
+    offset = 0.1
+    ax.imshow(light_fig, zorder=1, interpolation='bilinear', extent=[TILESIZE*5+17, TILESIZE*6-17, TILESIZE*2+5, TILESIZE*3-5])
+
 
 def animate_images(output_dir):
     # Create the frames
@@ -204,6 +222,7 @@ def traces_to_animation(filename, output_dir):
         plot_tester_cars(tester_agents)
         plot_peds(ped_agents)
         draw_timestamp(t)
+        draw_traffic_light(t)
         plot_name = str(t).zfill(5)
         img_name = output_dir+'/plot_'+plot_name+'.png'
         fig.savefig(img_name)

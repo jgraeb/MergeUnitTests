@@ -473,12 +473,21 @@ class GridWorld:
                 line = ' ' if symb == '*' else str(symb)
         print(line)
 
+    def set_traffic_light_color(self):
+        # LIGHTCYCLE = []
+        # 15 set as light cycle
+        if self.lightcycle < 10:
+            light = 'g'
+        elif 10 <= self.lightcycle <= 12:
+            light = 'y'
+        else:
+            light = 'r'
 
-def make_gridworld(agentdata,egodata):
-    '''Create a gridworld from a list of agents'''
-    tester_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
-    gi = GridWorld(2, 10, [],sys_agents=egodata, tester_agents=tester_agents, turn="ego")
-    return gi
+# def make_gridworld(agentdata,egodata):
+#     '''Create a gridworld from a list of agents'''
+#     tester_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
+#     gi = GridWorld(2, 10, [],sys_agents=egodata, tester_agents=tester_agents, turn="ego")
+#     return gi
 
 def run_intersection_gridworld():
     print('Intersection Example')
