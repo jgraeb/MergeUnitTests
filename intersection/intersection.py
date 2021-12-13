@@ -476,9 +476,10 @@ class GridWorld:
     def set_traffic_light_color(self):
         # LIGHTCYCLE = []
         # 15 set as light cycle
-        if self.lightcycle < 10:
+        light = self.timestep % 15
+        if  light < 10:
             light = 'g'
-        elif 10 <= self.lightcycle <= 12:
+        elif 10 <= light <= 12:
             light = 'y'
         else:
             light = 'r'
