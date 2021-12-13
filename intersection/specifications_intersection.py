@@ -51,5 +51,5 @@ def dynamic_transitions(agent_vars: List[str, str], map: Dict[List], agent_safet
             else:
                 guarantee += "\/" + guar_vi
         guarantee += ")"
-        
+
         agent_safety_spec |= {assumption + guarantee} # Appending to the set
