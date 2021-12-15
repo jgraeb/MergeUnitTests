@@ -71,7 +71,7 @@ def run_random_sim(maxstep):
                 #import pdb; pdb.set_trace()
                 gridworld.save_trace(filepath)
                 return
-    self.save_trace(filepath)
+    gridworld.save_trace(filepath)
 
 
 def append_trace(trace_dict, agent):
