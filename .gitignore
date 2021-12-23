@@ -4,3 +4,4 @@
 *.pyc
 *.gif
 __pycache__/
+*.p

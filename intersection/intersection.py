@@ -20,6 +20,8 @@ from ipdb import set_trace as st
 from collections import OrderedDict as od
 # from intersection.test_parameters import INTERSECTIONFILE
 
+MAX_TIMESTEP = 30
+
 def synthesize_filter():
     # TODO
     pass
@@ -219,12 +221,25 @@ class GridWorld:
     def is_terminal(self):
         '''Returns if the state is terminal'''
         for agent in self.sys_agents:
+            # st()
             goal = self.goals[agent.goal]
-            if agent.y == goal[1] and agent.x == goal[0]:
+            if agent.y == goal[0] and agent.x == goal[1]:
                 self.terminal = True
             else:
-                self.terminal = False
+                if self.timestep >= MAX_TIMESTEP:
+                    self.terminal = True
+                else:
+                    self.terminal = False
         return self.terminal
+
+    def reward(self):
+        '''Get reward for run'''
+        if not self.terminal:
+            raise RuntimeError("reward called on nonterminal gridworld")
+        else:
+            reward = self.timestep # TODO: add time left until red light here!
+            # print('Returned REWARD')
+            return reward
 
     def setup_world(self):
         '''Initializing the gridworld'''
@@ -234,28 +249,6 @@ class GridWorld:
             else:
                 self.tester_agents.append(agent)
         self.print_state()
-
-    # def take_next_tester_step(self,action_comb,agent_list):
-    #     agent_list_copy = deepcopy(agent_list)
-    #     for i,action in enumerate(action_comb):
-    #         agent_list_copy[i][1] = agent_list_copy[i][1]+self.tester_actions[action][0]
-    #         agent_list_copy[i][2] = agent_list_copy[i][2]+self.tester_actions[action][1]
-    #     return agent_list_copy
-
-    def take_next_step(self,agent,action,agent_list, check=False):
-        '''Given a list of agent positions, update the chosen agent position after the step'''
-        # find agent in agentlist
-        i = agent_list.index(agent)
-        # make this move
-        agentpos = (agent[1],agent[2])
-        enabled_actions = self.enabled_actions_from_loc(agentpos, agent_list)
-        agent_list[i][1] = enabled_actions[action][0]
-        agent_list[i][2] = enabled_actions[action][1]
-        if check:
-            # TODO add check filter here
-            return agent_list
-        else:
-            return agent_list
 
     def get_actions(self,agent,agent_list):
         '''get all possible actions for an agent from its position'''
@@ -311,7 +304,7 @@ class GridWorld:
                 move_x,move_y = self.actions[action]
             act_x = x + move_x
             act_y = y + move_y
-            if self.is_cell_free((act_x,act_y)):
+            if (act_x,act_y) != (self.tester_cars[0].x, self.tester_cars[0].y) and (act_x,act_y) != (self.tester_peds[0].x, self.tester_peds[0].y):
                 enabled_actions.update({action: (act_x,act_y)})
             enabled_actions.update({'stay': (x,y)}) # stay is always included
         return enabled_actions
@@ -319,7 +312,10 @@ class GridWorld:
     def enabled_actions_pedestrian(self,ped):
         '''Find possible actions for agent'''
         enabled_actions = dict()
-        cw_loc = ped.cwloc
+        if type(ped) == list:
+            cw_loc = ped[3]
+        else:
+            cw_loc = ped.cwloc
         gridpos = self.crosswalk[cw_loc]
         actions = self.ped_actions # all possible actions
         allowed_acts = []
@@ -383,8 +379,6 @@ class GridWorld:
             actions_dict.update({key : child_nodes})
         return actions_dict
 
-
-
     def is_cell_free(self, cellxy, agent_list = None):
         '''check if the cell is free'''
         x,y = cellxy
@@ -427,11 +421,6 @@ class GridWorld:
             agent.y = agent.y + move_y
             if action in self.actions and action != 'stay':
                 agent.orientation = action
-        # else:
-            # x,y = enabled_actions['stay']
-            # agent.x = x
-            # agent.y = y
-
 
     def pedestrian_take_step(self, ped, action):
         print('Pedestrian {0} choses {1}'.format(ped.name, action))
@@ -473,11 +462,218 @@ class GridWorld:
                 line = ' ' if symb == '*' else str(symb)
         print(line)
 
+    def set_traffic_light_color(self):
+        # LIGHTCYCLE = []
+        # 15 set as light cycle
+        light = self.timestep % 15
+        if  light < 10:
+            light = 'g'
+        elif 10 <= light <= 12:
+            light = 'y'
+        else:
+            light = 'r'
 
-def make_gridworld(agentdata,egodata):
+    def print_state(self):
+        # save the scene
+        # self.trace = save_scene(self,self.trace)
+        print('Timestep '+str(self.timestep))
+        k_old = 0
+        line = ""
+        agent_positions = [(agent.x,agent.y) for agent in self.tester_cars]
+        agent_positions.append((self.sys_agents[0].x,self.sys_agents[0].y))
+        ped_positions = [(ped.x, ped.y) for ped in self.tester_peds]
+        for item in self.map:
+            k_new = item[0]
+            if item in agent_positions:
+                symb = 'o'
+            elif item in ped_positions:
+                symb = 'P'
+            else:
+                symb = self.map[item]
+            if k_new == k_old:
+                line += ' ' if symb == '*' else str(symb)
+            else:
+                print(line)
+                k_old = item[0]
+                line = ' ' if symb == '*' else str(symb)
+        print(line)
+
+    """ Basic mcts functions """
+    def take_next_step(self, agent, action, agent_dict, sys_agent, check=False):
+        '''Given a list of agent positions, update the chosen agent position after the step'''
+        if agent[0] == 'Ped1':
+            name = 'ped'
+        else:
+            name = 'car'
+        # make this move
+        if name == 'car':
+            agentpos = (agent_dict[name][1],agent_dict[name][2])
+        else:
+            agentpos = (agent_dict[name][3])
+        enabled_actions = self.enabled_actions_for_rollout(name, agentpos, agent_dict, sys_agent)
+        # st()
+        if name == 'car':
+            agent_dict[name][1] = enabled_actions[action][0]
+            agent_dict[name][2] = enabled_actions[action][1]
+        else:
+            try:
+                agent_dict[name][3] = enabled_actions[action]
+            except:
+                st()
+            agent_dict[name][1] = self.crosswalk[enabled_actions[action]][0]
+            agent_dict[name][2] = self.crosswalk[enabled_actions[action]][1]
+        return agent_dict
+
+    def enabled_actions_for_rollout(self, name, agentpos, agent_dict, sys_agent):
+        enabled_actions = dict()
+        if name == 'car':
+            actions = self.tester_actions
+            allowed_acts = []
+            for action in actions:
+                move_xy = self.tester_actions[action]
+                new_x = agentpos[0] + move_xy[0]
+                new_y = agentpos[1] + move_xy[1]
+                if (new_x, new_y) != sys_agent and (new_x, new_y) != self.crosswalk[agent_dict['ped'][3]]:
+                    enabled_actions.update({action: (new_x, new_y)})
+        elif name == 'ped':
+            cw_loc = agentpos
+            gridpos = self.crosswalk[cw_loc]
+            actions = self.ped_actions # all possible actions
+            allowed_acts = []
+            for action in actions:
+                move_on_cw = self.ped_actions[action]
+                new_cw_pos = cw_loc + move_on_cw
+                if min(self.crosswalk.keys()) <= new_cw_pos <= max(self.crosswalk.keys()):
+                    if gridpos != sys_agent and gridpos != (agent_dict['car'][1],agent_dict['car'][2]):
+                        enabled_actions.update({action: new_cw_pos})
+                # enabled_actions.update({'stay': cw_loc}) # stay is always included
+        return enabled_actions
+
+    def find_children(self, debug = False):
+        # st()
+        # print('Finding all node children to world')
+        # self.print_state()
+        '''Find all children for a node'''
+        if self.terminal:
+            return set()
+        if self.turn == "tester": # the testers take their turn
+            #agent = 'ag_env'
+            children = set()
+            count = 1
+            for gi in self.get_children_gridworlds(debug):
+                gi.turn = "sys"
+                gi.timestep = self.timestep + 1
+                children.add(gi)
+                # print(gi.turn + " can play ")
+        else: # the system takes its turn
+            for agent in self.sys_agents:
+                agent_actions = self.enabled_actions(agent)
+                if agent.x == 3:
+                    if 'n' in agent_actions.keys():
+                        agent_actions.pop('n')
+                    if 'nw' in agent_actions.keys():
+                        agent_actions.pop('nw')
+                # self.print_state()
+                # print('agent is at x {0}, y {1}'.format(agent.x,agent.y))
+                # print('possible actions are: {}'.format(agent_actions.keys()))
+                # actions = self.strategy(agent)
+                children = set()
+                count = 1
+                for ai in agent_actions:
+                    x,y = agent_actions[ai]
+                    intersectionfile = os.getcwd()+'/intersection/intersectionfile.txt'
+                    gi = GridWorld([], intersectionfile)
+                    if ai == 'stay':
+                        orientation = agent.orientation
+                    else:
+                        orientation = ai
+                    sys_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal, orientation = orientation)]
+                    gi.sys_agents = sys_agents
+                    gi.tester_cars = self.tester_cars
+                    gi.tester_peds = self.tester_peds
+                    count = count+1
+                    gi.timestep = self.timestep + 1
+                    children.add(gi)
+                    # print(gi.turn + " can play ")
+        return children
+
+    def find_random_child(self):
+        # print('finding random child')
+        debug = False
+        '''Pick a random child node'''
+        if self.terminal:
+            return None
+
+        children = self.find_children()
+        if debug:
+            # print_child_gridworlds(children)
+            st()
+        try:
+            ran_child = choice(list(children))
+        except:
+            st()
+            debug = True
+            children = self.find_children(debug)
+        if debug:
+            print('Picked:')
+            ran_child.print_state()
+        return ran_child
+
+    def get_children_gridworlds(self,debug=False):
+        # print('Getting children gridworlds')
+        if debug:
+            st()
+        # st()
+        '''Find all children nodes from the current node for env action next'''
+        # prep the agent data
+        testers_original = dict()
+        # st()
+        sys_agent = (self.sys_agents[0].x, self.sys_agents[0].y)
+        for agent in self.tester_cars:
+            testers_original.update({'car': [agent.name, agent.x, agent.y, agent.v, agent.goal, agent.orientation]})
+        for agent in self.tester_peds:
+            testers_original.update({'ped': [agent.name, agent.x, agent.y, agent.cwloc, agent.goal]})
+        # st()
+        # list_of_agentlists = [agent_list_original]
+        # do all combinations of actions that are possible and then check
+        list_of_tester_agents = []
+        # pick action for first agent
+        ped = testers_original['ped']
+        car = testers_original['car']
+        # actions1 = self.get_actions(agent1,agent_list_original)
+        actions1 = self.enabled_actions_pedestrian(ped)
+        for action1 in actions1:
+            testers_new = deepcopy(testers_original)
+            # take the step
+            # st()
+            testers_new = self.take_next_step(ped, action1, testers_new, sys_agent)
+            # actions2 = self.get_actions(agent2, agent_list_copy)
+            # st()
+            agentpos = (car[1],car[2])
+            actions2 = self.enabled_actions_for_rollout('car', agentpos, testers_new, sys_agent)
+            # st()
+            for action2 in actions2:
+                testers_new_2 = deepcopy(testers_new)
+                check = True
+                testers_new_2 = self.take_next_step(car, action2, testers_new_2, check, debug)
+                if testers_new_2 is not None:
+                    # print('A gridworld child was found')
+                    # st()
+                    list_of_tester_agents.append(testers_new_2)
+        # list_of_agentlists = deepcopy(list_of_tester_agents)
+        list_of_gridworlds = [make_gridworld(agent_dict, self.sys_agents) for agent_dict in list_of_tester_agents]
+        # st()
+        return list_of_gridworlds
+
+def make_gridworld(agent_dict, sys_agents):
     '''Create a gridworld from a list of agents'''
-    tester_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
-    gi = GridWorld(2, 10, [],sys_agents=egodata, tester_agents=tester_agents, turn="ego")
+    intersectionfile = os.getcwd()+'/intersection/intersectionfile.txt'
+    gi = GridWorld([],intersectionfile)
+    gi.sys_agents = sys_agents
+    car_data = agent_dict['car']
+    gi.tester_cars = [Agent(name=car_data[0], x=car_data[1],y=car_data[2],v=0, goal=car_data[3], orientation = car_data[4])]
+    ped_data = agent_dict['ped']
+    gi.tester_peds = [Pedestrian(name=ped_data[0], x=ped_data[1],y=ped_data[2],cwloc=ped_data[3], goal=ped_data[4])]
     return gi
 
 def run_intersection_gridworld():
@@ -504,6 +700,7 @@ def make_state_dictionary_for_specification():
     actions_dict = gw.match_actions_to_transitions()
     # print(transitions_dict)
     return transitions_dict, actions_dict
+
 
 
 if __name__ == '__main__':

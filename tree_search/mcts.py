@@ -19,7 +19,7 @@ class MCTS:
         self.N = defaultdict(int)  # total visit count for each node
         self.children = dict()  # children of each node
         self.exploration_weight = exploration_weight
-        self.max_cells = 10
+        self.max_cells = 25 # max cells in merge or max timesteps in intersection TODO: separate!
 
     def choose(self, node):
         "Choose the best successor of node. (Choose a move in the game)"
@@ -40,7 +40,7 @@ class MCTS:
         path = self._select(node)
         leaf = path[-1]
         self._expand(leaf)
-        #print(" -------- Begin simulate -----------")
+        # print(" -------- Begin simulate -----------")
         reward = self._simulate(leaf)
         self._backpropagate(path, reward)
 
