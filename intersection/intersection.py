@@ -2,7 +2,7 @@
 #                                                                           #
 # Basic class for grid world intersection traffic simulation                #
 # Josefine Graebener, Apurva Badithela                                      #
-# Caltech, November 2021                                                       #
+# Caltech, November 2021                                                    #
 #                                                                           #
 #############################################################################
 from random import choice
