@@ -142,9 +142,10 @@ def get_game_graph(state_dict, crosswalk):
 
     nstates = len(nodes)
     G = nx.DiGraph()
-    V = np.linspace(1, 1, 2 * nstates)
+    V = np.linspace(1, 2 * nstates, 2 * nstates)
+    V = V.astype(int)
     G.add_nodes_from(V)
-
+    # st()
     state2vertex = dict()
     sys_state2vertex = dict()
     test_state2vertex = dict()

@@ -35,9 +35,7 @@ from abstraction_intersection import get_graph, create_intersection_from_file
 # Intuition: This is similar to specifying the terminal condition in MPC
 # Depending on states that satisfy the goal_lambda condition, those are added to the Wj_dict
 # Get Vj for all goals
-'''
-MODIFY
-'''
+
 def get_Vj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker, goal_lambda):
     """
     Parameters
@@ -65,9 +63,6 @@ def get_Vj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker
 
 # Function to get Vi_j, which is the set of all states that are j*horizon steps
 # (1 step = 1 round of play) away from set from progress goal []<>i:
-'''
-MODIFY
-'''
 def get_Vj(tracklength, G, st2ver_dict, ver2st_dict, goal):
     """
     Parameters

@@ -224,7 +224,7 @@ def get_game_graph(state_dict, crosswalk):
 
     nstates = len(nodes)
     G = nx.DiGraph()
-    V = np.linspace(1, 1, 2 * nstates)
+    V = np.linspace(1, 2 * nstates, 2 * nstates)
     G.add_nodes_from(V)
 
     state2vertex = dict()
@@ -281,6 +281,7 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     # connect the graphs
     # assign goal state to terminal state
     system_wait_state = (4,4) # State of the system when intersection is not free
+    system_goal_state = (3,0)
     tester_car_intersection_states = [(3,3), (2,3), (1,3)] # States of the tester car where the system needs to wait
     tester_car_not_intersection_states = [(0,3), (4,3), (5,3), (6,3), (7,3)]
     tester_pedestrian_crosswalk_states = [0,1,2,3]
@@ -298,6 +299,10 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
             st()
             g2_states.append(((system_wait_state), tester_state, ped_state))
     st()
+    # Find final goal states for terminal condition
+    goal_states = []
+    for
+
     pass
 
 # Function to define all possible states in the graph:
