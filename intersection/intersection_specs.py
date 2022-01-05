@@ -60,8 +60,9 @@ def intersection_specs(state_dict):
     # bounds = [x_min_grid,x_max_grid, y_min_grid,y_max_grid]
     x_init = 7
     y_init = 4
+
     x_goal = 3
-    y_goal = 0
+    y_goal = 2
     sys_vars = {}
     sys_vars['x'] = (x_min_grid, x_max_grid)
     sys_vars['y'] = (y_min_grid, y_max_grid)
@@ -73,28 +74,60 @@ def intersection_specs(state_dict):
     sys_safe |= add_dynamics(state_dict,[('x','y')], x_min_grid,x_max_grid, y_min_grid,y_max_grid)
 
     # testers
-    x1_init = 0
-    y2_init = 3
-    x2_init = 3
-    y1_init = 7
-    tester_vars = {}
-    tester_vars['x1'] = (x_min_grid, x_max_grid)
-    tester_vars['y1'] = (y_min_grid, y_max_grid)
-    tester_vars['x2'] = (x_min_grid, x_max_grid)
-    tester_vars['y2'] = (y_min_grid, y_max_grid)
-    tester_init = {'x1='+str(x1_init), 'y1='+str(y1_init), 'x2='+str(x2_init), 'y2='+str(y2_init)}
+    xc_init = 0 # Car x position
+    yc_init = 3 # Car y position
+    xp_init = 0 # Pedestrian position
+    Np = 2 # 2 ped cells per car check_all_states_in_winset
+    tester_vars = {} # Tester variables
+    tester_vars['xc'] = (x_min_grid, x_max_grid)
+    tester_vars['yc'] = (y_min_grid, y_max_grid)
+    pmin = 0
+    pmax = 4*Np-1
+    tester_vars['xp'] = (pmin, pmax)
+    tester_init = {'x1='+str(x1_init), 'y1='+str(y1_init), 'xp='+str(xp_init)}
     tester_prog = set()
     tester_safe = set()
     # Add the dynamics
-    tester_safe |= add_dynamics(state_dict, [('x1','y1'),('x2','y2')], x_min_grid,x_max_grid, y_min_grid,y_max_grid)
+    tester_safe |= add_dynamics(state_dict, [('xc','yc')], x_min_grid,x_max_grid, y_min_grid,y_max_grid)
+    tester_safe |= add_ped_dynamics('xp', pmin, pmax)
     # Add no collissions between any agents
     no_collisions_tester, no_collisions_sys = no_collisions(x_min_grid, x_max_grid, y_min_grid, y_max_grid)
     tester_safe |= no_collisions_tester
     sys_safe |= no_collisions_sys
 
+    tester_prog |= add_progress_specs(spec="wait_for_car")
+    tester_prog |= add_progress_specs(spec="wait_for_ped")
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
+
+# Add progress specifications:
+def add_progress_specs(spec=spec):
+    prog_spec = set()
+    # Adding specifications for waiting for Car
+    if spec == "wait_for_car":
+        xwait = 4
+        ywait = 4
+        #
+        # <>(xc \in Xwait /\ xT \in Xinter)
+        # []()
+        # <>!(!(xc \in Xwait) \/ !(xT \in Xinter))
+        # ![](!(xc \in Xwait) \/ !(xT \in Xinter))
+        # ![]!(xc \in Xwait -> !(xT \in Xinter))
+        prog_spec |= {'x = '+str(xwait)+' && y='+str(ywait)}
+        return prog_spec
+    # Adding specifications for waiting for pedestrian:
+    elif spec == "wait_for_ped":
+    elif spec == "reach_goal":
+    else:
+        print("Not correct spec type")
+
+# Dynamics of pedestrian:
+def add_ped_dynamics(ped_var, pmin, pmax):
+    ped_dyn = set()
+    for pi in range(pmin, pmax):
+        ped_dyn |= {'('+ ped_var +' = '+str(pi)+') -> X('+ ped_var+' = '+str(pi)+' || ' + ped_var + ' = '+str(pi+1)')'}
+    return ped_dyn
 
 def no_collisions(x_min_grid, x_max_grid, y_min_grid, y_max_grid):
     '''
