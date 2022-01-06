@@ -13,6 +13,7 @@ from intersection import make_state_dictionary_for_specification
 from tools import create_intersection_from_file
 from spec_tools import Spec, make_grspec, check_circular, check_specs
 from graph_construction import find_next_state_dict
+from ipdb import set_trace as st
 
 def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
     '''
@@ -23,22 +24,28 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
     # No collision with other vehicles:
     for zi in range(z_min_grid,z_max_grid):
         for yi in range(y_min_grid, y_max_grid):
+            cw_num = []
             for loc in crosswalk.keys():
-                cw_num = []
+                # st()
                 if crosswalk[loc] == (yi, zi):
                     cw_num.append(loc)
                 ped_string = ''
                 for item in cw_num:
                     if ped_string == '':
-                        ped_string = ped_string + '(p= '+str(item)+')'
+                        ped_string = ped_string + '(p = '+str(item)+')'
                     else:
-                        ped_string = ped_string + ' || (p= '+str(item)+')'
+                        ped_string = ped_string + ' || (p = '+str(item)+')'
 
-            tester_safe |= {'!(y1 = '+str(yi)+' && z1 = '+str(zi)+' && '+str(ped_string)+')'}
-            tester_safe |= {'(y = '+str(yi)+' && z= '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
-            tester_safe |= {'(y = '+str(yi)+' && z= '+str(zi)+') -> X(!('+str(ped_string)+'))'}
+            tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
             sys_safe |= {'(y1 = '+str(yi)+' && z1 = '+str(zi)+') -> X(!(y = '+str(yi)+' && z = '+str(zi)+ '))'}
-            sys_safe |= {'('+str(ped_string)+') -> X(!(y='+str(yi)+' && z = '+str(zi)+ '))'}
+
+            if not ped_string == '':
+                tester_safe |= {'!(y1 = '+str(yi)+' && z1 = '+str(zi)+' && '+str(ped_string)+')'}
+                tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!('+str(ped_string)+'))'}
+                sys_safe |= {'('+str(ped_string)+') -> X(!(y='+str(yi)+' && z = '+str(zi)+ '))'}
+
+
+            # check for pedestrian
     return tester_safe, sys_safe
 
 def dynamics_car(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
