@@ -104,9 +104,15 @@ def intersection_specs(state_dict, crosswalk):
     tester_vars['y1'] = (y_min_grid, y_max_grid)
     tester_vars['z1'] = (z_min_grid, z_max_grid)
     tester_vars['p'] = (min_cw, max_cw)
-    tester_init = {'y1='+str(y1_init), 'z1='+str(z1_init), 'p='+str(0)}
+    tester_init = {'y1='+str(y1_init), 'z1='+str(z1_init), 'p='+str(0), 'wflg=0', 'pflg = 0', 'tflg = 0'}
     tester_prog = set()
     tester_safe = set()
+    tester_vars['wflg'] = (0,1)
+    tester_vars['pflg'] = (0,1)
+    tester_vars['tflg'] = (0,1)
+    tester_safe |= add_prog_flg_specs(spec="wait_for_car")
+    tester_safe |= add_prog_flg_specs(spec="wait_for_ped")
+    tester_safe |= add_prog_flg_specs(spec="wait_for_goal")
 
     # Add the dynamics
     tester_safe |= dynamics_car(state_dict, [('y1','z1')], y_min_grid, y_max_grid, z_min_grid, z_max_grid)
@@ -117,9 +123,60 @@ def intersection_specs(state_dict, crosswalk):
     tester_safe |= no_collisions_tester
     sys_safe |= no_collisions_sys
 
+    # Progress specs
+    tester_prog |= add_progress_specs(spec="wait_for_car")
+    tester_prog |= add_progress_specs(spec="wait_for_ped")
+    tester_prog |= add_progress_specs(spec="wait_for_goal")
+
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
     return ego_spec, test_spec
+
+# Add safety specifications that correspond to the progress:
+def add_prog_flg_specs(spec=spec):
+    safety_spec = set()
+    if spec == "wait_for_car":
+        ywait = 4
+        zwait = 4
+        xinter = [(1,3),(2,3),(3,3)]
+        for yc, zc in xinter:
+            safety_spec |= {'(y = '+str(xwait)+' && z='+str(ywait) + ' && y1 = '+str(yc)+' && z1 = ' + str(yc) + ' && wflg = 0) -> X(wflg = 1)'}
+        safety_spec |= {'(wflg = 1) -> X(wflg = 1)'}
+
+    # Adding specifications for waiting for pedestrian:
+    elif spec == "wait_for_ped":
+        ywait = 4
+        zwait = 4
+        xcrsng = [0,1,2,3]
+        for p in xcrsng:
+            safety_spec |= {'(y = '+str(ywait)+' && z='+str(zwait) + ' && p = '+str(p)+ ' && pflg = 0) -> X(pflg = 1)'}
+            safety_spec |= {'(pflg = 1) -> X(pflg = 1)'}
+
+    elif spec == "reach_goal":
+        yturn = 3
+        zturn = 1
+        safety_spec |= {'(y = '+str(yturn)+' && z='+str(zturn) + ' && tflg = 0) -> X(tflg = 1)'}
+        safety_spec |= {'(tflg = 1) -> X(tflg = 1)'}
+    else:
+        print("Not correct spec type")
+    return safety_spec
+
+# Add progress specifications:
+def add_progress_specs(spec=spec):
+    prog_spec = set()
+    # Adding specifications for waiting for Car
+    if spec == "wait_for_car":
+        prog_spec |= {'(wflg=1)'}
+
+    # Adding specifications for waiting for pedestrian:
+    elif spec == "wait_for_ped":
+        prog_spec |= {'(pflg=1)'}
+
+    elif spec == "reach_goal":
+        prog_spec |= {'(tflg=1)'}
+    else:
+        print("Not correct spec type")
+    return prog_spec
 
 def test_specs():
     '''
