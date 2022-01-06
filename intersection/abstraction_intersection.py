@@ -189,14 +189,14 @@ def find_next_state_dict(state_dict):
     # st()
     return next_state_dict
 
-def get_graph(state_dict, crosswalk):
+def get_game_graph(state_dict, crosswalk):
     x_max_sys = 7
     x_min_sys = 3
     y_max_sys = 4
     y_min_sys = 0
     sys_states = []
-    for ii in range(x_min_sys, x_max_sys+1):
-        for jj in range(y_min_sys, y_max_sys+1):
+    for ii in range(x_min_sys, x_max_sys + 1):
+        for jj in range(y_min_sys, y_max_sys + 1):
             if (ii,jj) in state_dict:
                 if state_dict[(ii,jj)] == '↑' or state_dict[(ii,jj)] == '←' or state_dict[(ii,jj)] == '+':
                     sys_states.append((ii,jj))
@@ -224,7 +224,7 @@ def get_graph(state_dict, crosswalk):
 
     nstates = len(nodes)
     G = nx.DiGraph()
-    V = np.linspace(1, 1, 2 * nstates)
+    V = np.linspace(1, 2 * nstates, 2 * nstates)
     G.add_nodes_from(V)
 
     state2vertex = dict()
@@ -270,9 +270,40 @@ def get_graph(state_dict, crosswalk):
     for key in edge_dict.keys():
         for item in edge_dict[key]:
             G.add_edge(key,item)
-    st()
+    # st()
     return G, sys_state2vertex, test_state2vertex
 
+def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
+    st()
+    # define states for phi_1 and phi_2
+    # create copies of the graph
+    # create last copy for terminal condition
+    # connect the graphs
+    # assign goal state to terminal state
+    system_wait_state = (4,4) # State of the system when intersection is not free
+    system_goal_state = (3,0)
+    tester_car_intersection_states = [(3,3), (2,3), (1,3)] # States of the tester car where the system needs to wait
+    tester_car_not_intersection_states = [(0,3), (4,3), (5,3), (6,3), (7,3)]
+    tester_pedestrian_crosswalk_states = [0,1,2,3]
+    tester_pedestrian_not_crosswalk_states = [4,5,6,7]
+    # For specification 1 - wait for tester car
+    # System has to be correct position and tester car also while in system state
+    g1_states = []
+    for tester_state in tester_car_intersection_states:
+        for ped_state in tester_pedestrian_not_crosswalk_states:
+            st()
+            g1_states.append(((system_wait_state), tester_state, ped_state))
+    g2_states = []
+    for ped_state in tester_pedestrian_crosswalk_states:
+        for tester_state in tester_car_not_intersection_states:
+            st()
+            g2_states.append(((system_wait_state), tester_state, ped_state))
+    st()
+    # Find final goal states for terminal condition
+    goal_states = []
+    for
+
+    pass
 
 # Function to define all possible states in the graph:
 def get_all_states():
@@ -394,16 +425,17 @@ if __name__ == '__main__':
 
     intersectionfile = 'intersectionfile.txt'
     map, crosswalk = create_intersection_from_file(intersectionfile)
-    G, sys_state2vertex, test_state2vertex = get_graph(map, crosswalk)
+    G, sys_state2vertex, test_state2vertex = get_game_graph(map, crosswalk)
+    G_aux, sys_state2vertex, test_state2vertex = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
     st()
     # Old:
-    G, sys_state2vertex, test_state2vertex = get_all_states()
-    # goal_sys_states = find_goal_state(sys_state2vertex, goal_loc)
-    # goal_test_states = find_goal_state(test_state2vertex, goal_loc)
-    # goal_states = goal_sys_states + goal_test_states
-    # state2vertex = sys_state2vertex | test_state2vertex
-    state2vertex = {**sys_state2vertex, **test_state2vertex}
-    goal_states = find_goal_state(state2vertex, goal_loc)
-    G = add_edges_2_goalstate(G, state2vertex, goal_states)
-    Wj = get_Wj(G)
-    st()
+    # G, sys_state2vertex, test_state2vertex = get_all_states()
+    # # goal_sys_states = find_goal_state(sys_state2vertex, goal_loc)
+    # # goal_test_states = find_goal_state(test_state2vertex, goal_loc)
+    # # goal_states = goal_sys_states + goal_test_states
+    # # state2vertex = sys_state2vertex | test_state2vertex
+    # state2vertex = {**sys_state2vertex, **test_state2vertex}
+    # goal_states = find_goal_state(state2vertex, goal_loc)
+    # G = add_edges_2_goalstate(G, state2vertex, goal_states)
+    # Wj = get_Wj(G)
+    # st()
