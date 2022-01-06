@@ -12,6 +12,7 @@ import tulip.interfaces.omega as omega_intf
 from intersection import make_state_dictionary_for_specification
 from tools import create_intersection_from_file
 from spec_tools import Spec, make_grspec, check_circular
+from graph_construction import find_next_state_dict
 
 def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
     '''
@@ -33,10 +34,10 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
                     else:
                         ped_string = ped_string + ' || (p= '+str(item)+')'
 
-            tester_safe |= {'!(y1='+str(yi)+' && z1 ='+str(zi)+' && '+str(ped_string)+')'}
-            tester_safe |= {'(y='+str(yi)+' && z= '+str(zi)+') -> X(!(y1 ='+str(yi)+'&& z1 = '+str(zi)+'))'}
-            tester_safe |= {'(y='+str(yi)+' && z= '+str(zi)+') -> X(!('+str(ped_string)+'))'}
-            sys_safe |= {'(y1 ='+str(yi)+' && z1 = '+str(zi)+') -> X(!(y='+str(yi)+' && z= '+str(zi)+ '))'}
+            tester_safe |= {'!(y1 = '+str(yi)+' && z1 = '+str(zi)+' && '+str(ped_string)+')'}
+            tester_safe |= {'(y = '+str(yi)+' && z= '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
+            tester_safe |= {'(y = '+str(yi)+' && z= '+str(zi)+') -> X(!('+str(ped_string)+'))'}
+            sys_safe |= {'(y1 = '+str(yi)+' && z1 = '+str(zi)+') -> X(!(y = '+str(yi)+' && z = '+str(zi)+ '))'}
             sys_safe |= {'('+str(ped_string)+') -> X(!(y='+str(yi)+' && z = '+str(zi)+ '))'}
     return tester_safe, sys_safe
 
@@ -44,18 +45,19 @@ def dynamics_car(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid,
     '''
     Add the dynamics from the intersection grid to the specifications.
     '''
+    next_state_dict = find_next_state_dict(state_dict)
     dynamics_spec = set()
     for agent_var in agent_var_list:
         for ii in range(y_min_grid,y_max_grid):
             for jj in range(z_min_grid,z_max_grid):
-                if (ii,jj) in state_dict:
+                if not state_dict[(ii,jj)] == '*':
                     next_steps_string = ''
-                    for item in state_dict[(ii,jj)]:
+                    for item in next_state_dict[(ii,jj)]:
                         if next_steps_string == '':
-                            next_steps_string = next_steps_string + '('+str(agent_var[0])+'='+str(item[0])+' && '+str(agent_var[1])+' ='+str(item[0])+')'
+                            next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(item[0])+' && '+str(agent_var[1])+' = '+str(item[0])+')'
                         else:
-                            next_steps_string = next_steps_string + ' || ('+str(agent_var[0])+'='+str(item[0])+' && '+str(agent_var[1])+'='+str(item[0])+')'
-                    dynamics_spec |= {'('+str(agent_var[0])+'='+str(ii)+' && '+str(agent_var[1])+'='+str(jj)+') -> X(('+ next_steps_string +'))'}
+                            next_steps_string = next_steps_string + ' || ('+str(agent_var[0])+' = '+str(item[0])+' && '+str(agent_var[1])+' = '+str(item[0])+')'
+                    dynamics_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
     return dynamics_spec
 
 def dynamics_ped(ped_var, min_cw, max_cw):
@@ -64,10 +66,10 @@ def dynamics_ped(ped_var, min_cw, max_cw):
     '''
     dynamics_ped = set()
     for cw_loc in range(min_cw, max_cw):
-        next_steps_string = '('+str(ped_var)+'='+str(cw_loc)+' || '+str(ped_var)+'='+str(cw_loc + 1)+')'
-        dynamics_ped |= {'('+str(ped_var)+'='+str(cw_loc)+') -> X(('+ next_steps_string +'))'}
+        next_steps_string = '('+str(ped_var)+' = '+str(cw_loc)+' || '+str(ped_var)+' = '+str(cw_loc + 1)+')'
+        dynamics_ped |= {'('+str(ped_var)+' = '+str(cw_loc)+') -> X(('+ next_steps_string +'))'}
     cw_loc = max_cw
-    dynamics_ped |= {'('+str(ped_var)+'='+str(cw_loc)+') -> X(('+str(ped_var)+'='+str(cw_loc)+'))'}
+    dynamics_ped |= {'('+str(ped_var)+' = '+str(cw_loc)+') -> X(('+str(ped_var)+' = '+str(cw_loc)+'))'}
     return dynamics_ped
 
 def intersection_specs(state_dict, crosswalk):
