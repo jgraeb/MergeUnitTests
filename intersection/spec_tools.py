@@ -44,6 +44,7 @@ def check_circular(spec):
 def check_specs(spec):
     spec.moore = True
     spec.qinit = r'\E \A'  # i.e., "there exist sys_vars: forall sys_vars"
+    spec.plus_one = True  # a specification formula option, affects
     # At this point we can synthesize the controller
     # using one of the available methods.
     strategy = synth.synthesize(spec)
