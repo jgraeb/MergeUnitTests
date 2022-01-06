@@ -39,3 +39,12 @@ def make_grspec(sys_spec, env_spec):
 def check_circular(spec):
     if omega_intf.is_circular(spec):
         raise AssertionError('detected circularity in the specification')
+
+# Check if strategy is feasible:
+def check_specs(spec):
+    spec.moore = True
+    spec.qinit = r'\E \A'  # i.e., "there exist sys_vars: forall sys_vars"
+    # At this point we can synthesize the controller
+    # using one of the available methods.
+    strategy = synth.synthesize(spec)
+    assert strategy is not None, 'unrealizable'
