@@ -140,7 +140,7 @@ def add_prog_flg_specs(spec=spec):
         zwait = 4
         xinter = [(1,3),(2,3),(3,3)]
         for yc, zc in xinter:
-            safety_spec |= {'(y = '+str(xwait)+' && z='+str(ywait) + ' && y1 = '+str(yc)+' && z1 = ' + str(yc) + ' && wflg = 0) -> X(wflg = 1)'}
+            safety_spec |= {'(y = '+str(ywait)+' && z='+str(zwait) + ' && y1 = '+str(yc)+' && z1 = ' + str(yc) + ' && wflg = 0) -> X(wflg = 1)'}
         safety_spec |= {'(wflg = 1) -> X(wflg = 1)'}
 
     # Adding specifications for waiting for pedestrian:
