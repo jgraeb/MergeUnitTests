@@ -11,7 +11,7 @@ from tulip.interfaces.omega import _grspec_to_automaton
 import tulip.interfaces.omega as omega_intf
 from intersection import make_state_dictionary_for_specification
 from tools import create_intersection_from_file
-from spec_tools import Spec, make_grspec, check_circular
+from spec_tools import Spec, make_grspec, check_circular, check_specs
 from graph_construction import find_next_state_dict
 
 def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
@@ -190,6 +190,7 @@ def test_specs():
     test_spec, ego_spec = intersection_specs(map, crosswalk)
     gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
     print(gr_spec.pretty())
+    check_specs(gr_spec)
     # check_circular(gr_spec)
     # synthesize_controller(gr_spec)
 
