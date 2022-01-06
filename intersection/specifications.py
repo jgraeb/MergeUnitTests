@@ -79,49 +79,85 @@ def dynamics_ped(ped_var, min_cw, max_cw):
     dynamics_ped |= {'('+str(ped_var)+' = '+str(cw_loc)+') -> X(('+str(ped_var)+' = '+str(cw_loc)+'))'}
     return dynamics_ped
 
-def intersection_specs(state_dict, crosswalk):
-    # grid variables
+# Variables:
+def sys_variables():
     y_min_grid = 0
     y_max_grid = 7
     z_min_grid = 0
     z_max_grid = 7
-    min_cw = 0
-    max_cw = 7
-
-    # bounds = [x_min_grid,x_max_grid, y_min_grid,y_max_grid]
-    y_init = 7
-    z_init = 4
-    y_goal = 3
-    z_goal = 0
     sys_vars = {}
+    # bounds = [x_min_grid,x_max_grid, y_min_grid,y_max_grid]
     sys_vars['y'] = (y_min_grid, y_max_grid)
     sys_vars['z'] = (z_min_grid, z_max_grid)
-    sys_init = {'y='+str(y_init)+' && z='+str(z_init)}
-    sys_prog = set()
-    sys_prog |= {'y='+str(y_goal)+' && z='+str(z_goal)}
-    sys_safe = set()
-    # add the dynamics for the system
-    sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+    return sys_vars, y_min_grid, y_max_grid, z_min_grid, z_max_grid
 
-    # tester car + pedestrian
-    # initial positions
-    y1_init = 0
-    z1_init = 3
-    ped_init = 0
+
+def tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid):
+    min_cw = 0
+    max_cw = 7
     tester_vars = {}
     # set initial conditions
     tester_vars['y1'] = (y_min_grid, y_max_grid)
     tester_vars['z1'] = (z_min_grid, z_max_grid)
     tester_vars['p'] = (min_cw, max_cw)
-    tester_init = {'y1='+str(y1_init), 'z1='+str(z1_init), 'p='+str(0), 'wflg=0', 'pflg = 0', 'tflg = 0'}
-    tester_prog = set()
-    tester_safe = set()
+    return tester_vars, min_cw, max_cw
+
+# Initial conditions for system:
+def initial_sys_vars():
+    sys_init = set()
+    y_init = 7
+    z_init = 4
+    sys_init = {'y='+str(y_init)+' && z='+str(z_init)}
+    return sys_init
+
+def init_tester_vars():
+    y1_init = 0
+    z1_init = 3
+    ped_init = 0
+    tester_init = {'y1='+str(y1_init), 'z1='+str(z1_init), 'p='+str(0)}
+    return tester_init
+
+# Progress guarantee for system:
+def progress_sys_vars():
+    sys_prog = set()
+    y_goal = 3
+    z_goal = 0
+    sys_prog |= {'y='+str(y_goal)+' && z='+str(z_goal)}
+    return sys_prog
+
+# Function to add auxiliary tester specifications:
+def auxiliary_tester_specs(tester_vars, tester_init, tester_safe, tester_prog):
     tester_vars['wflg'] = (0,1)
     tester_vars['pflg'] = (0,1)
     tester_vars['tflg'] = (0,1)
+    tester_init |= {'wflg=0', 'pflg=1', 'tflg=1'}
+
     tester_safe |= add_prog_flg_specs(spec="wait_for_car")
     tester_safe |= add_prog_flg_specs(spec="wait_for_ped")
     tester_safe |= add_prog_flg_specs(spec="wait_for_goal")
+
+    tester_prog |= add_progress_specs(spec="wait_for_car")
+    tester_prog |= add_progress_specs(spec="wait_for_ped")
+    tester_prog |= add_progress_specs(spec="wait_for_goal")
+    return tester_vars, tester_init, tester_safe, tester_prog
+
+def intersection_specs(state_dict, crosswalk):
+    # grid variables
+    sys_vars, y_min_grid, y_max_grid, z_min_grid, z_max_grid = sys_variables()
+    sys_init = initial_sys_vars()
+    sys_prog = progress_sys_vars()
+    sys_safe = set()
+
+    # add the dynamics for the system
+    sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+
+    # tester car + pedestrian
+    # initial positions
+    tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    tester_init = tester_init()
+
+    tester_prog = set()
+    tester_safe = set()
 
     # Add the dynamics
     tester_safe |= dynamics_car(state_dict, [('y1','z1')], y_min_grid, y_max_grid, z_min_grid, z_max_grid)
@@ -132,10 +168,9 @@ def intersection_specs(state_dict, crosswalk):
     tester_safe |= no_collisions_tester
     sys_safe |= no_collisions_sys
 
-    # Progress specs
-    tester_prog |= add_progress_specs(spec="wait_for_car")
-    tester_prog |= add_progress_specs(spec="wait_for_ped")
-    tester_prog |= add_progress_specs(spec="wait_for_goal")
+
+    # Progress auxiliary specs
+    tester_vars, tester_init, tester_safe, tester_prog = auxiliary_tester_specs(tester_vars, tester_init, tester_safe, tester_prog)
 
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
     test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
