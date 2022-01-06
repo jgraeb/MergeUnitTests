@@ -102,7 +102,6 @@ class MCTS:
         assert all(n in self.children for n in self.children[node])
 
         log_N_vertex = math.log(self.N[node])
-
         def uct(n):
             "Upper confidence bound for trees"
             if self.N[n] == 0:
