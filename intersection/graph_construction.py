@@ -12,6 +12,8 @@ import numpy as np
 import networkx as nx
 from ipdb import set_trace as st
 from collections import OrderedDict as od
+from networkx.algorithms.shortest_paths.generic import shortest_path_length
+
 
 def create_intersection_from_file(intersectionfile):
     map = od()
@@ -39,31 +41,31 @@ def find_next_state_dict(state_dict):
             new_states = []
             new_states.append(state)
             if state_dict[state] == '←' and state[1] > 0:
-                new_state = (state[0]-1, state[1])
+                new_state = (state[0], state[1]-1)
                 new_states.append(new_state)
             if state_dict[state] == '↓' and 7 > state[0]:
-                new_state = (state[0], state[1]+1)
+                new_state = (state[0]+1, state[1])
                 new_states.append(new_state)
             if state_dict[state] == '↑' and state[0] > 0:
-                new_state = (state[0], state[1]-1)
+                new_state = (state[0]-1, state[1])
                 new_states.append(new_state)
             if state_dict[state] == '+':
                 if state[0] == 3 and state[1] == 3:
-                    new_state = (state[0]-1, state[1])
+                    new_state = (state[0], state[1]-1)
                     new_states.append(new_state)
-                    new_state = (state[0], state[1]+1)
+                    new_state = (state[0]+1, state[1])
                 if state[0] == 4 and state[1] == 3:
                     new_state = (state[0]+1, state[1])
-                    new_states.append(new_state)
-                    new_state = (state[0], state[1]+1)
+                    # new_states.append(new_state)
+                    # new_state = (state[0], state[1]+1)
                 if state[0] == 3 and state[1] == 4:
+                    new_state = (state[0], state[1]-1)
+                    new_states.append(new_state)
                     new_state = (state[0]-1, state[1])
-                    new_states.append(new_state)
-                    new_state = (state[0], state[1]-1)
                 if state[0] == 4 and state[1] == 4:
-                    new_state = (state[0]+1, state[1])
-                    new_states.append(new_state)
-                    new_state = (state[0], state[1]-1)
+                    # new_state = (state[0], state[1])
+                    # new_states.append(new_state)
+                    new_state = (state[0]-1, state[1])
                 new_states.append(new_state)
             next_state_dict.update({state: new_states})
     return next_state_dict
@@ -108,28 +110,28 @@ def find_next_tester_states(state,next_state_dict,crosswalk):
     return next_tester_combinations
 
 def get_game_graph(state_dict, crosswalk):
-    x_max_sys = 7
-    x_min_sys = 3
-    y_max_sys = 4
-    y_min_sys = 0
+    y_max_sys = 7
+    y_min_sys = 3
+    z_max_sys = 4
+    z_min_sys = 0
     sys_states = []
-    for ii in range(x_min_sys, x_max_sys + 1):
-        for jj in range(y_min_sys, y_max_sys + 1):
+    for ii in range(y_min_sys, y_max_sys + 1):
+        for jj in range(z_min_sys, z_max_sys + 1):
             if (ii,jj) in state_dict:
                 if state_dict[(ii,jj)] == '↑' or state_dict[(ii,jj)] == '←' or state_dict[(ii,jj)] == '+':
                     sys_states.append((ii,jj))
-    x_max_test = 7
-    x_min_test = 0
-    y_test = 3
+    y_max_test = 7
+    y_min_test = 0
+    z_test = 3
     tester_states = []
-    for ii in range(x_min_test, x_max_test + 1):
-            if (ii,y_test) in state_dict:
-                tester_states.append((ii,y_test))
+    for ii in range(y_min_test, y_max_test + 1):
+            if (ii,z_test) in state_dict:
+                tester_states.append((ii,z_test))
 
     ped_cw_loc_min = 0
     ped_cw_loc_max = 7
     ped_states = []
-    for ii in range(x_min_test, x_max_test + 1):
+    for ii in range(y_min_test, y_max_test + 1):
             if (ii) in crosswalk:
                 ped_states.append((ii))
 
@@ -153,8 +155,9 @@ def get_game_graph(state_dict, crosswalk):
     for i,state in enumerate(nodes):
         sys_state2vertex.update({state: i + 1})
         test_state2vertex.update({state: i + 1 + nstates})
-    next_state_dict = find_next_state_dict(state_dict)
 
+    next_state_dict = find_next_state_dict(state_dict)
+    # st()
     # Now loop through the states and create the edges
     edge_dict = dict()
     for state in nodes:
@@ -181,6 +184,7 @@ def get_game_graph(state_dict, crosswalk):
     for key in edge_dict.keys():
         for item in edge_dict[key]:
             G.add_edge(key,item)
+    # st()
     return G, sys_state2vertex, test_state2vertex
 
 def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
@@ -210,7 +214,7 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     for car_state in all_tester_states:
         for ped_state in all_ped_states:
             goal_states.append(((system_goal_state), (car_state), ped_state))
-
+    # st()
     # create the graph copies to connect
     G_1, G_2, G_T = copy_graphs(G)
 
@@ -231,12 +235,12 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     G_aux = nx.compose(G_c2,G_T)
     for state in g2_states:
         sys_state_num = sys_state2vertex[state] # g2 is always a system state
-        G_c1.remove_edges_from(list(G.out_edges(str(sys_state_num)+'_2'))) # remove all edges from the node in the G graph
-        G_c1.add_edge(str(sys_state_num)+'_2', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
+        G_aux.remove_edges_from(list(G.out_edges(str(sys_state_num)+'_2'))) # remove all edges from the node in the G graph
+        G_aux.add_edge(str(sys_state_num)+'_2', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
     for state in g1_states:
         sys_state_num = sys_state2vertex[state] # g2 is always a system state
-        G_c1.remove_edges_from(list(G.out_edges(str(sys_state_num)+'_1'))) # remove all edges from the node in the G graph
-        G_c1.add_edge(str(sys_state_num)+'_1', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
+        G_aux.remove_edges_from(list(G.out_edges(str(sys_state_num)+'_1'))) # remove all edges from the node in the G graph
+        G_aux.add_edge(str(sys_state_num)+'_1', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
     # now include 'goal' state in G_aux
     G_aux.add_node('goal') # add the goal state that is connected to nodes in G_T
     for state in goal_states:
@@ -246,7 +250,7 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
         G_aux.remove_edges_from(list(G.out_edges(str(tester_state_num)+'_T')))
         G_aux.add_edge(str(sys_state_num)+'_T', 'goal') # add edge from the node in G to the node in G_T
         G_aux.add_edge(str(sys_state_num)+'_T', 'goal')
-
+    st()
     return G_aux # Return the auxiliary game graph
 
 def copy_graphs(G):
@@ -255,6 +259,18 @@ def copy_graphs(G):
     G_T = nx.relabel_nodes(G, lambda x: str(x)+'_T')
     return G_1, G_2, G_T
 
+def construct_partial_order(G_aux, goal):
+    node_dist = dict()
+    Vj_set = dict()
+    for node in list(G_aux.nodes):
+        if nx.has_path(G_aux, node, goal):
+            pl = shortest_path_length(G_aux, node, goal)
+            node_dist[node] = pl
+            if pl not in list(Vj_set.keys()):
+                Vj_set[pl] = [node]
+            else:
+                Vj_set[pl].append(node)
+    return Vj_set # partial order of sets of states in G_aux
 
 if __name__ == '__main__':
     goal_loc = (3,0)
@@ -263,4 +279,9 @@ if __name__ == '__main__':
     map, crosswalk = create_intersection_from_file(intersectionfile)
     G, sys_state2vertex, test_state2vertex = get_game_graph(map, crosswalk)
     G_aux = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
+    # Partial order for auxiliary goal state -> need to separate into 'i' goals
+    goal_states = ['goal']
+    Vj_set = dict()
+    for goal in goal_states:
+        Vj_set.update({goal: construct_partial_order(G_aux, goal)})
     st()
