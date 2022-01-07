@@ -5,6 +5,8 @@ from graph_construction import *
 import numpy as np
 from tools import WinningSet, check_all_states_in_winset_rh, check_state_in_fp
 
+PRINT_STATES_IN_COMPUTATION = True
+
 # Function to get specifications for receeding horizon synthesis:
 # Base specification
 def rh_base_spec():
@@ -87,14 +89,14 @@ def add_psi_i_j_progress(Vij_dict, j, st2ver_dict):
 
 # Add progress specifications to base spec:
 # Make sure inital conditions are empty
-def rh_spec_add_progress(Vij, j, state2ver_dict):
+def rh_spec_add_progress(Vij, j, st2ver_dict):
     ego_spec, test_spec = rh_base_spec()
     ego_spec.init = set()
     test_spec.init = set()
-    assumption, prog_guarantee, goal_states = add_psi_i_j_progress(Vij, j, state2ver_dict)
+    assumption, prog_guarantee, goal_states = add_psi_i_j_progress(Vij, j, st2ver_dict)
     test_spec.prog |= prog_guarantee
     ego_spec.safety |= assumption
-    return test_spec, ego_spec
+    return test_spec, ego_spec, goal_states
 
 # Construct receding horizon winning set specifications:
 def find_winset(test_spec, ego_spec):
@@ -127,15 +129,15 @@ def rh_winsets(Vij, state2ver_dict):
     Wij = dict()
     for j in np.linspace(jmax, 0, jmax+1):
         if j%2 == 0:
-            test_rh_spec, ego_rh_spec = rh_spec_add_progress(Vij, j, state2ver_dict)
-            fixpt = find_winset(test_rh_spec, ego_rh_spec)
+            test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, state2ver_dict)
+            W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
 
-            states_in_fp, states_out_fp = check_all_states_in_fp(tracklength, agentlist, w_set, fp, aut)
+            states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut)
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
             # Filter out states that begin in Vj, are in the fixpoint, and satisfy the assumptions
             start_set = Vij[j]
-            states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
+            states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
             # st()
             Wij.update({j: states_in_winset})
