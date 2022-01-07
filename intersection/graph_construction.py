@@ -184,8 +184,21 @@ def get_game_graph(state_dict, crosswalk):
     for key in edge_dict.keys():
         for item in edge_dict[key]:
             G.add_edge(key,item)
-    # st()
+    sys_vertex2state, test_vertex2state = flip_state_dictionaries(sys_state2vertex, test_state2vertex)
     return G, sys_state2vertex, test_state2vertex
+
+def flip_state_dictionaries(sys_state2vertex, test_state2vertex):
+    # st()
+    sys_vertex2state = dict()
+    test_vertex2state = dict()
+    for state in sys_state2vertex:
+        vertex = sys_state2vertex[state]
+        sys_vertex2state.update({vertex: state})
+    for state in test_state2vertex:
+        vertex = test_state2vertex[state]
+        test_vertex2state.update({vertex: state})
+    # st()
+    return sys_vertex2state, test_vertex2state
 
 def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     # define states for phi_1 and phi_2
