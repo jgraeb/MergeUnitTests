@@ -19,7 +19,7 @@ def rh_base_spec():
     # tester car + pedestrian
     # initial positions
     tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
-    tester_init = tester_init()
+    tester_init = init_tester_vars()
 
     tester_prog = set()
     tester_safe = set()
@@ -139,4 +139,3 @@ def rh_winsets(Vij, state2ver_dict):
             states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
             # st()
             Wij.update({j: states_in_winset})
-    pass
