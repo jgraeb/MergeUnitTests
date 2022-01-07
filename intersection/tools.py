@@ -100,14 +100,23 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
     states_in_winset = []
     states_outside_winset = []
     for state in sys_st2ver_dict.keys():
-        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+        check_bdd = W.check_state_in_fp(aut, fixpt, state)
         print(state)
         print(check_bdd)
+        if check_bdd:
+            states_in_winset.append(state)
+        else:
+            states_outside_winset.append(state)
 
     for state in test_st2ver_dict.keys():
-        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+        check_bdd = W.check_state_in_fp(aut, fixpt, state)
         print(state)
         print(check_bdd)
+        if check_bdd:
+            states_in_winset.append(state)
+        else:
+            states_outside_winset.append(state)
+
     return states_in_winset, states_outside_winset
 
 
