@@ -15,7 +15,7 @@ FILTER_FIXPOINT = False
 def rh_base_spec():
     intersectionfile = 'intersectionfile.txt'
     state_dict, crosswalk = create_intersection_from_file(intersectionfile)
-    
+
     sys_vars, y_min_grid, y_max_grid, z_min_grid, z_max_grid = sys_variables()
     sys_init = initial_sys_vars()
     sys_prog = progress_sys_vars()
@@ -88,6 +88,7 @@ def make_dict_from_tuple(tuple):
 def add_psi_i_j_progress(Vij_dict, j, sys_st2ver_dict, test_st2ver_dict):
     assumption = set()
     prog_guarantee = set()
+    st()
     Vj = Vij_dict[j]
     assert j%2 == 0 # Make sure j is odd
     if j >= 2:
@@ -164,4 +165,5 @@ def rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict):
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
-    Wij = rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict)
+    for i in Vij.keys():
+        Wij = rh_winsets(Vij[i], sys_st2ver_dict, test_st2ver_dict)
