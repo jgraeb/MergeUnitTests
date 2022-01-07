@@ -3,7 +3,8 @@
 
 from graph_construction import *
 import numpy as np
-from tools import WinningSet, check_all_states_in_winset_rh, check_state_in_fp
+from tools import WinningSet #check_all_states_in_winset_rh, check_state_in_fp
+from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 
 PRINT_STATES_IN_COMPUTATION = True
 FILTER_FIXPOINT = False
@@ -54,15 +55,25 @@ def get_str_spec(state_dict):
 # Function to construct set membership:
 #
 def construct_spec_set_membership(Vj, sys_st2ver_dict, test_st2ver_dict):
+    sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
     spec = "("
     for vj in Vj:
-        state_dict = ver2st_dict[vj] ### Modify this line. Depending on vj, need to decide between sys_st2ver_dict or test_st2ver_dict
+        if vj in sys_ver2st_dict:
+            state_tup = sys_ver2st_dict[vj] ### Modify this line. Depending on vj, need to decide between sys_st2ver_dict or test_st2ver_dict
+        elif vj in test_ver2st_dict:
+            state_tup = test_ver2st_dict[vj]
+        state_dict = make_dict_from_tuple(state_tup)
         if spec == "(":
             spec += get_str_spec(state_dict)
         else:
             spec += " || " + get_str_spec(state_dict)
     spec += ")"
     return spec
+
+def make_dict_from_tuple(tuple):
+    out_dict = dict()
+    out_dict = {'y': tuple[0][0], 'z': tuple[0][1], 'y1': tuple[1][0], 'z1': tuple[1][1], 'p': tuple[-1]}
+    return out_dict
 
 # Function to add progress properties of the jth specification for the ith goal:
 # Keep separate goals for each winning set
@@ -143,3 +154,9 @@ def rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict):
                 Wij.update({j: states_in_winset})
             else:
                 Wij.update({j: states_in_winset})
+    return Wij
+
+
+if __name__ == '__main__':
+    Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
+    Wij = rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict)
