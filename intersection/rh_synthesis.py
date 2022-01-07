@@ -88,7 +88,6 @@ def make_dict_from_tuple(tuple):
 def add_psi_i_j_progress(Vij_dict, j, sys_st2ver_dict, test_st2ver_dict):
     assumption = set()
     prog_guarantee = set()
-    st()
     Vj = Vij_dict[j]
     assert j%2 == 0 # Make sure j is odd
     if j >= 2:
@@ -134,7 +133,9 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
             W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
 
-            states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut)
+            pdb.set_trace()
+
+            states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
@@ -166,5 +167,4 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
-    pdb.set_trace()
     Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)

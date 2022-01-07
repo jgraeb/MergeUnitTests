@@ -80,37 +80,20 @@ class WinningSet:
         shield_dict = w_set.synthesize_shield()
         return shield_dict
 
-def check_all_states_in_fp(tracklength, agentlist, w_set, winning_set, aut):
+def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
     # winning_set = w_set.find_winning_set(aut)
     print_flg = False
-    num_test_agents = len(agentlist)
     states_in_winset = []
     states_outside_winset = []
-    if num_test_agents == 1:
-        for x in range(1,tracklength+1):
-            for y in range(1,2+1):
-                for x1 in range(1,tracklength+1):
-                    state = {'x': x, 'y': y, 'x1': x1}
-                    check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-                    print(state)
-                    print(check_bdd)
-    # x2 < x1, since x2 is a second tester
-    elif num_test_agents ==2:
-        for x in range(1,tracklength+1):
-            for y in range(1,2+1):
-                for x1 in range(1,tracklength+1):
-                    for x2 in range(1, x1):
-                        state = {'x': x, 'y': y, agentlist[0]: x1, 'y1':2, agentlist[1]: x2, 'y2':2}
-                        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-                        if check_bdd:
-                            states_in_winset.append(state)
-                        else:
-                            states_outside_winset.append(state)
-                        if print_flg:
-                            print(state)
-                            print(check_bdd)
-    else:
-        print('Too many agents')
+    for state in sys_st2ver_dict.keys():
+        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+        print(state)
+        print(check_bdd)
+        
+    for state in test_st2ver_dict.keys():
+        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+        print(state)
+        print(check_bdd)
     return states_in_winset, states_outside_winset
 
 
