@@ -214,6 +214,11 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     for car_state in all_tester_states:
         for ped_state in all_ped_states:
             goal_states.append(((system_goal_state), (car_state), ped_state))
+    # Find goal state vertex number
+    goal_state_num = []
+    for state in goal_states:
+        # goal_state_num.append(sys_state2vertex[state])
+        goal_state_num.append(test_state2vertex[state])
     # st()
     # create the graph copies to connect
     G_1, G_2, G_T = copy_graphs(G)
@@ -242,16 +247,16 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
         G_aux.remove_edges_from(list(G_aux.out_edges(str(sys_state_num)+'_1'))) # remove all edges from the node in the G graph
         G_aux.add_edge(str(sys_state_num)+'_1', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
     # now include 'goal' state in G_aux
-    G_aux.add_node('goal') # add the goal state that is connected to nodes in G_T
-    for state in goal_states:
-        sys_state_num = sys_state2vertex[state] # goal state can be system or tester state
-        tester_state_num = test_state2vertex[state]
-        G_aux.remove_edges_from(list(G_aux.out_edges(str(sys_state_num)+'_T'))) # remove all edges from the node in the G graph
-        G_aux.remove_edges_from(list(G_aux.out_edges(str(tester_state_num)+'_T')))
-        G_aux.add_edge(str(sys_state_num)+'_T', 'goal') # add edge from the node in G to the node in G_T
-        G_aux.add_edge(str(tester_state_num)+'_T', 'goal')
+    # G_aux.add_node('goal') # add the goal state that is connected to nodes in G_T
+    # for state in goal_states:
+    #     sys_state_num = sys_state2vertex[state] # goal state can be system or tester state
+    #     tester_state_num = test_state2vertex[state]
+    #     G_aux.remove_edges_from(list(G_aux.out_edges(str(sys_state_num)+'_T'))) # remove all edges from the node in the G graph
+    #     G_aux.remove_edges_from(list(G_aux.out_edges(str(tester_state_num)+'_T')))
+    #     G_aux.add_edge(str(sys_state_num)+'_T', 'goal') # add edge from the node in G to the node in G_T
+    #     G_aux.add_edge(str(tester_state_num)+'_T', 'goal')
     # st()
-    return G_aux # Return the auxiliary game graph
+    return G_aux, goal_state_num # Return the auxiliary game graph
 
 def connect_graphs(G_A, G_B, connection_nodes, name_string_graph_A, name_string_graph_B):
     G_c = nx.compose(G_A,G_B)
@@ -287,10 +292,15 @@ if __name__ == '__main__':
     intersectionfile = 'intersectionfile.txt'
     map, crosswalk = create_intersection_from_file(intersectionfile)
     G, sys_state2vertex, test_state2vertex = get_game_graph(map, crosswalk)
-    G_aux = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
+    G_aux, goal_state_num = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
     # Partial order for auxiliary goal state -> need to separate into 'i' goals
-    goal_states = ['goal']
+    goal_vertices = []
+    for num in goal_state_num:
+        goal_vertices.append(str(num)+'_T')
+    goal_states = goal_vertices#['goal']
     Vj_set = dict()
     for goal in goal_states:
-        Vj_set.update({goal: construct_partial_order(G_aux, goal)})
+        partial_order_i = construct_partial_order(G_aux, goal)
+        # print('{0}: {1}'.format(goal,partial_order_i))
+        Vj_set.update({goal: partial_order_i})
     st()
