@@ -7,6 +7,7 @@ from specifications import *
 from tools import WinningSet
  #check_all_states_in_winset_rh, check_state_in_fp
 from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
+import pdb
 
 PRINT_STATES_IN_COMPUTATION = True
 FILTER_FIXPOINT = False
@@ -58,7 +59,6 @@ def get_str_spec(state_dict):
     return spec_state
 
 # Function to construct set membership:
-#
 def construct_spec_set_membership(Vj, sys_st2ver_dict, test_st2ver_dict):
     sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
     spec = "("
@@ -125,23 +125,8 @@ def find_winset(test_spec, ego_spec):
     fp = w_set.find_winning_set(aut)
     return w_set, fp, aut
 
-def get_tester_states_in_winsets(tracklength, merge_setting):
-    """
-    Find all tester states in the winning sets.
-    W - Winning set
-    indices:
-    i - index of the goal
-    j - distance to corresponding goal in steps
-    """
-    ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G, state_dict_test, state_dict_system = specs_car_rh(tracklength, merge_setting)
-    Wij = dict()
-    for key in Vij_dict.keys():
-        Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
-        Wij.update({key: Wj})
-    return Wij, Vij_dict, state_tracker, ver2st_dict
-
 # Function to generate winning sets with receding horizon approach
-def rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict):
+def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
     jmax = len(Vij) - 1
     Wij = dict()
     for j in np.linspace(jmax, 0, jmax+1):
@@ -156,14 +141,30 @@ def rh_winsets(Vij, sys_st2ver_dict, test_st2ver_dict):
 
             if FILTER_FIXPOINT:
                 start_set = Vij[j]
-                states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, goal_states, G, sys_st2ver_dict, test_st2ver_dict, start_set)
+                states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, goal_states, G_aux, sys_st2ver_dict, test_st2ver_dict, start_set)
                 Wij.update({j: states_in_winset})
             else:
                 Wij.update({j: states_in_winset})
     return Wij
 
+# Function to get the winning sets for all states
+def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
+    """
+    Find all tester states in the winning sets for each goal
+    W - Winning set
+    indices:
+    i - index of the goal
+    j - distance to corresponding goal in steps
+    """
+
+    Wij = dict()
+    for key in Vij_dict.keys():
+        Wj = rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+        Wij.update({key: Wj})
+    return Wij, Vij_dict, state_tracker, ver2st_dict
+
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
-    for i in Vij.keys():
-        Wij = rh_winsets(Vij[i], sys_st2ver_dict, test_st2ver_dict)
+    pdb.set_trace()
+    Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
