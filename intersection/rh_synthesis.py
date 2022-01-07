@@ -3,7 +3,9 @@
 
 from graph_construction import *
 import numpy as np
-from tools import WinningSet #check_all_states_in_winset_rh, check_state_in_fp
+from specifications import *
+from tools import WinningSet
+ #check_all_states_in_winset_rh, check_state_in_fp
 from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 
 PRINT_STATES_IN_COMPUTATION = True
@@ -11,6 +13,9 @@ FILTER_FIXPOINT = False
 # Function to get specifications for receeding horizon synthesis:
 # Base specification
 def rh_base_spec():
+    intersectionfile = 'intersectionfile.txt'
+    state_dict, crosswalk = create_intersection_from_file(intersectionfile)
+    
     sys_vars, y_min_grid, y_max_grid, z_min_grid, z_max_grid = sys_variables()
     sys_init = initial_sys_vars()
     sys_prog = progress_sys_vars()
