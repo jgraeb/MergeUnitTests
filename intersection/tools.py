@@ -116,38 +116,26 @@ def check_all_states_in_fp(tracklength, agentlist, w_set, winning_set, aut):
 
 ## Check if states are in winning set for receding horizon winning sets:
 # Filtering states in the winning set:
-def check_all_states_in_winset_rh(tracklength, agentlist, w_set, winning_set, aut, mode, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set):
+def check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, st2ver_dict, start_set):
     # winning_set = w_set.find_winning_set(aut)
-    num_test_agents = len(agentlist)
     states_in_winset = []
     states_outside_winset = []
-    if num_test_agents == 1:
-        for x in range(1,tracklength+1):
-            for y in range(1,2+1):
-                for x1 in range(1,tracklength+1):
-                    state = {'x': x, 'y': y, 'x1': x1}
-                    check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-                    if PRINT_STATES_IN_COMPUTATION:
-                        print(state)
-                        print(check_bdd)
-
     # x2 < x1, since x2 is a second tester
-    elif num_test_agents ==2:
-        for state_node in start_set:
-            state = ver2st_dict[state_node]
-            check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-            if check_bdd:
-                state_node = get_dict_inv(ver2st_dict, state)
-                check_flg = check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G)
-                if check_flg:
-                    states_in_winset.append(state)
-                    if PRINT_STATES_IN_COMPUTATION:
-                        print(state)
-                        print(check_bdd)
-                else:
-                    states_outside_winset.append(state)
+    for state_node in start_set:
+        state = ver2st_dict[state_node]
+        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
+        if check_bdd:
+            state_node = get_dict_inv(ver2st_dict, state)
+            check_flg = check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G)
+            if check_flg:
+                states_in_winset.append(state)
+                if PRINT_STATES_IN_COMPUTATION:
+                    print(state)
+                    print(check_bdd)
             else:
                 states_outside_winset.append(state)
+        else:
+            states_outside_winset.append(state)
     else:
         print('Too many agents')
     return states_in_winset, states_outside_winset

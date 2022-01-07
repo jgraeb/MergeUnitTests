@@ -186,7 +186,7 @@ def intersection_specs(state_dict, crosswalk):
     # tester car + pedestrian
     # initial positions
     tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
-    tester_init = tester_init()
+    tester_init = init_tester_vars()
 
     tester_prog = set()
     tester_safe = set()
