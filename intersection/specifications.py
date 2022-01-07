@@ -200,7 +200,6 @@ def intersection_specs(state_dict, crosswalk):
     tester_safe |= no_collisions_tester
     sys_safe |= no_collisions_sys
 
-
     # Progress auxiliary specs
     tester_vars, tester_init, tester_safe, tester_prog = auxiliary_tester_specs(tester_vars, tester_init, tester_safe, tester_prog)
 
