@@ -160,9 +160,9 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 
     Wij = dict()
     for key in Vij.keys():
-        Wj = rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+        Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
         Wij.update({key: Wj})
-    return Wij, Vij, state_tracker, ver2st_dict
+    return Wij
 
 
 if __name__ == '__main__':
