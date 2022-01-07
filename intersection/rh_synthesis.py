@@ -138,6 +138,6 @@ def rh_winsets(Vij, state2ver_dict):
                 print("Printing states in winning set: ")
             # Filter out states that begin in Vj, are in the fixpoint, and satisfy the assumptions
             start_set = Vij[j]
-            states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
+            states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, st2ver_dict, start_set)
             # st()
             Wij.update({j: states_in_winset})
