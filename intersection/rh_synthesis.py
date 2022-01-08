@@ -4,8 +4,7 @@
 from graph_construction import *
 import numpy as np
 from specifications import *
-from tools import WinningSet
- #check_all_states_in_winset_rh, check_state_in_fp
+from tools import WinningSet, check_all_states_in_winset_rh, check_all_states_in_fp
 from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 import pdb
 
@@ -135,8 +134,6 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
             W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
 
-            pdb.set_trace()
-
             states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
@@ -165,7 +162,6 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
         Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
         Wij.update({key: Wj})
     return Wij
-
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
