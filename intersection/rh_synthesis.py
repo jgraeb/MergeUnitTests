@@ -125,6 +125,15 @@ def find_winset(test_spec, ego_spec):
     fp = w_set.find_winning_set(aut)
     return w_set, fp, aut
 
+# Test specification:
+def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
+    intersectionfile = 'intersectionfile.txt'
+    state_dict, crosswalk = create_intersection_from_file(intersectionfile)
+    ego_spec, test_spec = intersection_specs(state_dict, crosswalk)
+    W, fixpt, aut = find_winset(test_spec, ego_spec)
+    states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
+    st()
+
 # Function to generate winning sets with receding horizon approach
 def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
     jmax = len(Vij) - 1
@@ -133,7 +142,6 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
         if j%2 == 0:
             test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
             W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
-
             states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
@@ -144,7 +152,7 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
                 states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, goal_states, G_aux, sys_st2ver_dict, test_st2ver_dict, start_set)
                 Wij.update({j: states_in_winset})
             else:
-                Wij.update({j: states_in_winset})
+                Wij.update({j: states_in_fp})
     return Wij
 
 # Function to get the winning sets for all states
@@ -165,4 +173,5 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
+    test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict)
     Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
