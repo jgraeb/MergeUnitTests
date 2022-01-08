@@ -11,6 +11,8 @@ import pdb
 
 PRINT_STATES_IN_COMPUTATION = True
 FILTER_FIXPOINT = False
+
+
 # Function to get specifications for receeding horizon synthesis:
 # Base specification
 def rh_base_spec():
