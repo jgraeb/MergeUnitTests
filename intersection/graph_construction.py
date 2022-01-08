@@ -13,6 +13,7 @@ import networkx as nx
 from ipdb import set_trace as st
 from collections import OrderedDict as od
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
+from helper import load_graph_dicts, save_graph_and_dicts
 
 
 def create_intersection_from_file(intersectionfile):
@@ -300,20 +301,28 @@ def construct_partial_order(G_aux, goal):
     return Vj_set # partial order of sets of states in G_aux
 
 def set_up_partial_order_for_rh():
-    intersectionfile = 'intersectionfile.txt'
-    map, crosswalk = create_intersection_from_file(intersectionfile)
-    G, sys_state2vertex, test_state2vertex = get_game_graph(map, crosswalk)
-    G_aux, goal_state_num = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
-    goal_vertices = []
-    for num in goal_state_num:
-        goal_vertices.append(str(num)+'_T')
-    goal_states = goal_vertices#['goal']
-    Vj_set = dict()
-    for goal in goal_states:
-        partial_order_i = construct_partial_order(G_aux, goal)
-        # print('{0}: {1}'.format(goal,partial_order_i))
-        Vj_set.update({goal: partial_order_i})
-    return Vj_set, G_aux, sys_state2vertex, test_state2vertex
+    try:
+        print('Checking for the graph')
+        G_aux, Vij, sys_state2vertex, test_state2vertex = load_graph_dicts()
+        print('Graph loaded successfully')
+    except:
+        print('Constructing the graph')
+        intersectionfile = 'intersectionfile.txt'
+        map, crosswalk = create_intersection_from_file(intersectionfile)
+        G, sys_state2vertex, test_state2vertex = get_game_graph(map, crosswalk)
+        G_aux, goal_state_num = get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex)
+        goal_vertices = []
+        for num in goal_state_num:
+            goal_vertices.append(str(num)+'_T')
+        goal_states = goal_vertices
+        Vij = dict()
+        for goal in goal_states:
+            partial_order_i = construct_partial_order(G_aux, goal)
+            # print('{0}: {1}'.format(goal,partial_order_i))
+            Vij.update({goal: partial_order_i})
+        save_graph_and_dicts(G_aux, Vj, sys_state2vertex, test_state2vertex)
+    return Vij, G_aux, sys_state2vertex, test_state2vertex
+
 
 if __name__ == '__main__':
     goal_loc = (3,0)
