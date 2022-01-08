@@ -15,7 +15,7 @@ from omega.symbolic import fol as _fol
 from omega.symbolic import prime as prm
 from tulip.interfaces.omega import _grspec_to_automaton, _strategy_to_state_annotated
 import logging
-from ipdb import set_trace as st
+import pdb
 from tulip import transys, spec, synth
 
 
@@ -62,6 +62,7 @@ class WinningSet:
     # want to check has values of x=10 and y=15.
 
     def check_state_in_fp(self, aut, z, state_dict):
+        # pdb.set_trace()
         check_bdd = aut.let(state_dict, z)
         if check_bdd == aut.true:
             return True
@@ -94,13 +95,20 @@ class WinningSet:
         shield_dict = w_set.synthesize_shield()
         return shield_dict
 
+# State given in tuple form: ((x,y), (x1,y1),p)
+# Returned in state_dict form (ex): {'x': 2, 'y':3, 'x1': 3, 'y1': 4, 'p': 4}
+def convert_tuple2dict(state):
+    state_dict = {'y': state[0][0], 'z': state[0][1], 'y1': state[1][0], 'z1': state[1][1],'p': state[2]}
+    return state_dict
+
 def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
     # winning_set = w_set.find_winning_set(aut)
     print_flg = False
     states_in_winset = []
     states_outside_winset = []
     for state in sys_st2ver_dict.keys():
-        check_bdd = W.check_state_in_fp(aut, fixpt, state)
+        state_dict = convert_tuple2dict(state)
+        check_bdd = W.check_state_in_fp(aut, fixpt, state_dict)
         print(state)
         print(check_bdd)
         if check_bdd:
@@ -109,7 +117,8 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
             states_outside_winset.append(state)
 
     for state in test_st2ver_dict.keys():
-        check_bdd = W.check_state_in_fp(aut, fixpt, state)
+        state_dict = convert_tuple2dict(state)
+        check_bdd = W.check_state_in_fp(aut, fixpt, state_dict)
         print(state)
         print(check_bdd)
         if check_bdd:
