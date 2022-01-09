@@ -30,11 +30,12 @@ def create_intersection_from_file(intersectionfile):
     # make dictionary that maps each crosswalk state to a grid cell
     # currenly manual -> TODO crosswalk also automatically from file
     crosswalk = dict()
-    start_cw = 2
-    end_cw = 6
+    start_cw = 1
+    end_cw = 5
     y = 2
     for i, num in enumerate(range(2*start_cw,2*(end_cw+1))):
         crosswalk.update({i: (int(np.floor(num/2)), y)})
+    # st()
     return map, crosswalk
 
 class WinningSet:
@@ -134,13 +135,20 @@ def check_assumptions(state):
     in_W = True # default
     # Ego is on the left turn lane and tester has not yet passed
     if state['y'] == 3:
-        ped_not_crossed = lambda state: (state['p'] == 0 or state['p'] == 1 or state['p'] == 2 or state['p'] == 3)
+        ped_not_crossed = lambda state: (state['p'] == 0 or state['p'] == 1 or state['p'] == 2 or state['p'] == 3 or state['p'] == 4 or state['p'] == 5)
         test_car_not_crossed = lambda state: (state['z1'] == 3) and (state['y1'] == 0 or state['y1'] == 1 or state['y1'] == 2 or state['y1'] == 3)
         if ped_not_crossed(state) or test_car_not_crossed(state):
             in_W = False
 
+    # Ego has not reached the intersection and tester car an pedestrian have already passed
+    if state['z'] == 4 and not (state['y'] == 4 or state['y'] == 3):
+        ped_crossed = lambda state: (state['p'] == 6 or state['p'] == 7 or state['p'] == 8 or state['p'] == 9)
+        test_car_crossed = lambda state: (state['z1'] == 3) and (state['y1'] == 4 or state['y1'] == 5 or state['y1'] == 6 or state['y1'] == 7)
+        if ped_crossed(state) or test_car_crossed(state):
+            in_W = False
+
     # Collisions:
-    collision_ped = lambda state: (state['z'] == 2 and state['y'] == 3 and (state['p'] == 2 or state['p'] == 3))
+    collision_ped = lambda state: (state['z'] == 2 and state['y'] == 3 and (state['p'] == 4 or state['p'] == 5))
     collision_car = lambda state: (state['z'] == 3 and state['y'] == 3 and state['y1'] == 3 and state['z1'] == 3)
 
     if collision_ped(state) or collision_car(state):
@@ -153,6 +161,7 @@ def check_all_states_in_winset(w_orig):
     # winning_set = w_set.find_winning_set(aut)
     states_in_winset = []
     states_outside_winset = []
+    print('Filtered WS')
 
     # x2 < x1, since x2 is a second tester
     for state in w_orig:
@@ -162,6 +171,8 @@ def check_all_states_in_winset(w_orig):
             states_in_winset.append(state)
         else:
             states_outside_winset.append(state)
+        print(state)
+        print(flg)
     return states_in_winset, states_outside_winset
 
 # Least fixpoint computation:

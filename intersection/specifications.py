@@ -128,7 +128,7 @@ def sys_variables():
 
 def tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid):
     min_cw = 0
-    max_cw = 7
+    max_cw = 9
     tester_vars = {}
     # set initial conditions
     tester_vars['y1'] = (y_min_grid, y_max_grid)

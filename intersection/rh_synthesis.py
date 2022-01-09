@@ -186,6 +186,6 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
-    st()
+    # st()
     test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict)
     Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
