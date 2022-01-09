@@ -166,11 +166,11 @@ def auxiliary_tester_specs(tester_vars, tester_init, tester_safe, tester_prog):
 
     tester_safe |= add_prog_flg_specs(spec="wait_for_car")
     tester_safe |= add_prog_flg_specs(spec="wait_for_ped")
-    tester_safe |= add_prog_flg_specs(spec="wait_for_goal")
+    tester_safe |= add_prog_flg_specs(spec="reach_goal")
 
     tester_prog |= add_progress_specs(spec="wait_for_car")
     tester_prog |= add_progress_specs(spec="wait_for_ped")
-    tester_prog |= add_progress_specs(spec="wait_for_goal")
+    tester_prog |= add_progress_specs(spec="reach_goal")
     return tester_vars, tester_init, tester_safe, tester_prog
 
 def intersection_specs(state_dict, crosswalk):
@@ -251,6 +251,7 @@ def add_progress_specs(spec=spec):
         prog_spec |= {'(tflg=1)'}
     else:
         print("Not correct spec type")
+        pdb.set_trace()
     return prog_spec
 
 def test_specs():
