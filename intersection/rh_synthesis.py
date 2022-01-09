@@ -4,7 +4,7 @@
 from graph_construction import *
 import numpy as np
 from specifications import *
-from tools import WinningSet, check_all_states_in_winset_rh, check_all_states_in_fp
+from tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp
 from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 import pdb
 
@@ -138,8 +138,12 @@ def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
     ego_spec, test_spec = intersection_specs(state_dict, crosswalk)
     # st()
     W, fixpt, aut = find_winset(test_spec, ego_spec)
-    st()
     states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
+    states_in_W, states_out_W = check_all_states_in_winset(states_in_fp)
+    print("States in original fixpoint: ")
+    print(len(states_in_fp))
+    print("States in winning set: ")
+    print(len(states_in_W))
     st()
 
 # Function to generate winning sets with receding horizon approach
