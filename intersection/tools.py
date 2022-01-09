@@ -132,32 +132,36 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
 # Input: dictionary state
 def check_assumptions(state):
     in_W = True # default
-    
+    # Ego is on the left turn lane and tester has not yet passed
+    if state['y'] == 3:
+        ped_not_crossed = lambda state: (state['p'] == 0 or state['p'] == 1 or state['p'] == 2 or state['p'] == 3)
+        test_car_not_crossed = lambda state: (state['z1'] == 3) and (state['y1'] == 0 or state['y1'] == 1 or state['y1'] == 2 or state['y1'] == 3)
+        if ped_not_crossed(state) or test_car_not_crossed(state):
+            in_W = False
+
+    # Collisions:
+    collision_ped = lambda state: (state['z'] == 2 and state['y'] == 3 and (state['p'] == 2 or state['p'] == 3))
+    collision_car = lambda state: (state['z'] == 3 and state['y'] == 3 and state['y1'] == 3 and state['z1'] == 3)
+
+    if collision_ped(state) or collision_car(state):
+        in_W = False
     return in_W
 
 ## Check if states are in winning set for receding horizon winning sets:
-def check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, st2ver_dict, start_set):
+# w_orig: original winning set from the fixpoint computation
+def check_all_states_in_winset(w_orig):
     # winning_set = w_set.find_winning_set(aut)
     states_in_winset = []
     states_outside_winset = []
+
     # x2 < x1, since x2 is a second tester
-    for state_node in start_set:
-        state = ver2st_dict[state_node]
-        check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
-        if check_bdd:
-            state_node = get_dict_inv(ver2st_dict, state)
-            check_flg = check_A_G_rh(state, state_node, tracklength, mode, state_test_dict, state_system_dict, goal_states, G)
-            if check_flg:
-                states_in_winset.append(state)
-                if PRINT_STATES_IN_COMPUTATION:
-                    print(state)
-                    print(check_bdd)
-            else:
-                states_outside_winset.append(state)
+    for state in w_orig:
+        state_dict = convert_tuple2dict(state)
+        flg = check_assumptions(state_dict)
+        if flg:
+            states_in_winset.append(state)
         else:
             states_outside_winset.append(state)
-    else:
-        print('Too many agents')
     return states_in_winset, states_outside_winset
 
 # Least fixpoint computation:
