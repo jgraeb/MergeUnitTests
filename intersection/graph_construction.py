@@ -28,11 +28,12 @@ def create_intersection_from_file(intersectionfile):
     # make dictionary that maps each crosswalk state to a grid cell
     # currenly manual -> TODO crosswalk also automatically from file
     crosswalk = dict()
-    start_cw = 2
-    end_cw = 6
+    start_cw = 1
+    end_cw = 5
     y = 2
     for i, num in enumerate(range(2*start_cw,2*(end_cw+1))):
         crosswalk.update({i: (int(np.floor(num/2)), y)})
+    # st()
     return map, crosswalk
 
 def find_next_state_dict(state_dict):
@@ -77,18 +78,23 @@ def find_next_sys_states(state_dict, next_state_dict, state, crosswalk):
     # st()
     next_car_states = []
     # Find the possible tester car actions
-    if tester_state[0] in state_dict:
-        next_car_states = next_state_dict[tester_state[0]]
+    # if tester_state[0] in state_dict:
+    #     next_car_states = next_state_dict[tester_state[0]]
+    next_car_states = []
+    if not tester_state[0] == (7,3):
+        next_car_states.append((tester_state[0][0]+1, 3))
+    next_car_states.append(tester_state[0])
+
 
     # Find the possible tester pedestrian actions
     next_ped_states = []
     next_ped_states.append(tester_state[1])
-    if tester_state[1] != 0:
-        next_ped_states.append(tester_state[1]-1)
-    if tester_state[1] != 6:
+    # if tester_state[1] != 0:
+    #     next_ped_states.append(tester_state[1]-1)
+    if tester_state[1] != 9:
         next_ped_states.append(tester_state[1]+1)
-
-    # put the combinations back together leaving the tester states untouched
+    # st()
+    # put the combinations back together leaving the system states untouched
     next_sys_state_combinations = []
     for kk in next_car_states:
         for jj in next_ped_states:
@@ -100,7 +106,9 @@ def find_next_sys_states(state_dict, next_state_dict, state, crosswalk):
 def find_next_tester_states(state,next_state_dict,crosswalk):
     next_states = [[],[]]
     # Find the possible system actions
-    if state[0] in next_state_dict:
+    if state[0] == (3,4) or state[0] == (3,3):
+        next_states = [state[0], (state[0][0],state[0][1]-1)]
+    elif state[0] in next_state_dict:
         next_states = next_state_dict[state[0]]
 
     # put the combinations back together leaving the tester states untouched
@@ -119,7 +127,7 @@ def get_game_graph(state_dict, crosswalk):
     for ii in range(y_min_sys, y_max_sys + 1):
         for jj in range(z_min_sys, z_max_sys + 1):
             if (ii,jj) in state_dict:
-                if state_dict[(ii,jj)] == '↑' or state_dict[(ii,jj)] == '←' or state_dict[(ii,jj)] == '+':
+                if state_dict[(ii,jj)] == '↑' or state_dict[(ii,jj)] == '←' or (ii,jj) == (4,4) or (ii,jj) == (3,4) or (ii,jj) == (3,3):
                     sys_states.append((ii,jj))
     y_max_test = 7
     y_min_test = 0
@@ -130,12 +138,13 @@ def get_game_graph(state_dict, crosswalk):
                 tester_states.append((ii,z_test))
 
     ped_cw_loc_min = 0
-    ped_cw_loc_max = 7
+    ped_cw_loc_max = 9
     ped_states = []
-    for ii in range(y_min_test, y_max_test + 1):
+    # st()
+    for ii in range(ped_cw_loc_min, ped_cw_loc_max + 1):
             if (ii) in crosswalk:
                 ped_states.append((ii))
-
+    # st()
     nodes = []
     for sys_state in sys_states:
         for tester_state in tester_states:
@@ -149,7 +158,7 @@ def get_game_graph(state_dict, crosswalk):
     V = V.astype(int)
     G.add_nodes_from(V)
     # st()
-    state2vertex = dict()
+    # state2vertex = dict()
     sys_state2vertex = dict()
     test_state2vertex = dict()
     # Now loop through the states to match with the numbered graph nodes
@@ -172,12 +181,14 @@ def get_game_graph(state_dict, crosswalk):
             try:
                 next_sys_vertices.append(sys_state2vertex[next_sys_state])
             except:
-                pass
+                st()
+                # pass
         for next_test_state in next_test_states:
             try:
                 next_test_vertices.append(test_state2vertex[next_test_state])
             except:
-                pass
+                st()
+                # pass
         # Make the flip from system state to tester state
         edge_dict.update({sys_state2vertex[state]: next_test_vertices})
         edge_dict.update({test_state2vertex[state]: next_sys_vertices})
@@ -203,12 +214,12 @@ def flip_state_dictionaries(sys_state2vertex, test_state2vertex):
 
 def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     # define states for phi_1 and phi_2
-    system_wait_state = (4,4) # State of the system when intersection is not free
+    system_wait_state = (4,4) # State of the system when waiting
     system_goal_state = (3,0)
-    tester_car_intersection_states = [(1,3), (2,3), (3,3)] # States of the tester car where the system needs to wait
-    tester_car_not_intersection_states = [(0,3), (4,3), (5,3), (6,3), (7,3)]
-    tester_pedestrian_crosswalk_states = [0,1,2,3]
-    tester_pedestrian_not_crosswalk_states = [4,5,6,7]
+    tester_car_intersection_states = [(0,3), (1,3), (2,3), (3,3)] # States of the tester car where the system needs to wait
+    tester_car_not_intersection_states = [(4,3), (5,3), (6,3), (7,3)]
+    tester_pedestrian_crosswalk_states = [1,2,3,4,5]
+    tester_pedestrian_not_crosswalk_states = [0,4,5,6,7]
 
     # Find the states which satisfy the test specs
     g1_states = []
@@ -223,10 +234,10 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
 
     # Find final goal states for terminal condition
     goal_states = []
-    all_tester_states =  tester_car_not_intersection_states
-    all_ped_states = tester_pedestrian_not_crosswalk_states
-    for car_state in all_tester_states:
-        for ped_state in all_ped_states:
+    # all_tester_states =  tester_car_not_intersection_states
+    # all_ped_states = tester_pedestrian_not_crosswalk_states
+    for car_state in tester_car_not_intersection_states:
+        for ped_state in tester_pedestrian_not_crosswalk_states:
             goal_states.append(((system_goal_state), (car_state), ped_state))
     # Find goal state vertex number
     goal_state_num = []
