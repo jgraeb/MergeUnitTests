@@ -18,7 +18,6 @@ import logging
 import pdb
 from tulip import transys, spec, synth
 
-
 def create_intersection_from_file(intersectionfile):
     map = od()
     f = open(intersectionfile, 'r')
@@ -106,15 +105,15 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
     print_flg = False
     states_in_winset = []
     states_outside_winset = []
-    for state in sys_st2ver_dict.keys():
-        state_dict = convert_tuple2dict(state)
-        check_bdd = W.check_state_in_fp(aut, fixpt, state_dict)
-        print(state)
-        print(check_bdd)
-        if check_bdd:
-            states_in_winset.append(state)
-        else:
-            states_outside_winset.append(state)
+    # for state in sys_st2ver_dict.keys():
+    #     state_dict = convert_tuple2dict(state)
+    #     check_bdd = W.check_state_in_fp(aut, fixpt, state_dict)
+    #     print(state)
+    #     print(check_bdd)
+    #     if check_bdd:
+    #         states_in_winset.append(state)
+    #     else:
+    #         states_outside_winset.append(state)
 
     for state in test_st2ver_dict.keys():
         state_dict = convert_tuple2dict(state)
@@ -128,9 +127,15 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
 
     return states_in_winset, states_outside_winset
 
+# Design the filter for intersection:
+# Checks states that satisfy the assumptions:
+# Input: dictionary state
+def check_assumptions(state):
+    in_W = True # default
+    
+    return in_W
 
 ## Check if states are in winning set for receding horizon winning sets:
-# Filtering states in the winning set:
 def check_all_states_in_winset_rh(W, fixpt, aut, state_test_dict, state_system_dict, goal_states, G, st2ver_dict, start_set):
     # winning_set = w_set.find_winning_set(aut)
     states_in_winset = []

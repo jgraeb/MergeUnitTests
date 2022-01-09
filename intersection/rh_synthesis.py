@@ -25,6 +25,12 @@ def rh_base_spec():
 
     # add the dynamics for the system
     sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+    sys_safe |= intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    y_val = 3
+    z_min = 0
+    z_max = 7
+    agent_var = ['y','z']
+    sys_safe |= once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, z_min, z_max)
 
     # tester car + pedestrian
     # initial positions
@@ -130,7 +136,9 @@ def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
     intersectionfile = 'intersectionfile.txt'
     state_dict, crosswalk = create_intersection_from_file(intersectionfile)
     ego_spec, test_spec = intersection_specs(state_dict, crosswalk)
+    # st()
     W, fixpt, aut = find_winset(test_spec, ego_spec)
+    st()
     states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
     st()
 
@@ -154,6 +162,7 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             else:
                 Wij.update({j: states_in_fp})
     return Wij
+
 
 # Function to get the winning sets for all states
 def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):

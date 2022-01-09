@@ -79,6 +79,8 @@ def dynamics_ped(ped_var, min_cw, max_cw):
     dynamics_ped |= {'('+str(ped_var)+' = '+str(cw_loc)+') -> X(('+str(ped_var)+' = '+str(cw_loc)+'))'}
     return dynamics_ped
 
+#   Car drives afte left turn
+# Add
 def once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, z_min, z_max):
     '''
     Once the system is in cell (3,4) it must not stop anymore.
@@ -87,16 +89,16 @@ def once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, 
     safety_spec = set()
     for jj in range(z_min,z_max+1):
         if not state_dict[(y_val,jj)] == '*':
-            next_steps_string = ''
+            next_state_string = ''
             if jj == 0:
-                next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(y_val)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+                next_state_string = next_state_string + '('+str(agent_var[0])+' = '+str(y_val)+' && '+str(agent_var[1])+' = '+str(jj)+')'
             else:
-                next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(y_val)+' && '+str(agent_var[1])+' = '+str(jj-1)+')'
-            safety_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
+                next_state_string = next_state_string + '('+str(agent_var[0])+' = '+str(y_val)+' && '+str(agent_var[1])+' = '+str(jj-1)+')'
+            safety_spec |= {'('+str(agent_var[0])+' = '+str(y_val)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_state_string +'))'}
     return safety_spec
 
-
-def intersection_clear_eventually_system_drives(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
+# Add!
+def intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
     '''
     Once the intersection is free, the car must go.
     '''
@@ -108,7 +110,7 @@ def intersection_clear_eventually_system_drives(state_dict, agent_var_list, y_mi
         next_state_string = '( y = '+str(sys_state[0] - 1)+' && z = '+str(sys_state[1])+')' # move up one cell
         for tester_car in tester_car_not_intersection_states:
             for ped in tester_pedestrian_not_crosswalk_states:
-                safety_spec |= {'(y = '+str(sys_state[0])+' && z = '+str(sys_state[1])+' && y1 = '+str(tester_car[0])+' && z1 = '+str(tester_car[1])+' && p = '+str(ped)+') -> X(('+ next_steps_string +'))'}
+                safety_spec |= {'(y = '+str(sys_state[0])+' && z = '+str(sys_state[1])+' && y1 = '+str(tester_car[0])+' && z1 = '+str(tester_car[1])+' && p = '+str(ped)+') -> X(('+ next_state_string +'))'}
     return safety_spec
 
 # Variables:
@@ -182,7 +184,12 @@ def intersection_specs(state_dict, crosswalk):
 
     # add the dynamics for the system
     sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
-
+    sys_safe |= intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    y_val = 3
+    z_min = 0
+    z_max = 7
+    agent_var = ['y','z']
+    sys_safe |= once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, z_min, z_max)
     # tester car + pedestrian
     # initial positions
     tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
