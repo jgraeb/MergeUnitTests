@@ -63,7 +63,7 @@ def load_ws():
     return Wij, Vij_dict, state_tracker, ver2st_dict
 
 def load_graph_dicts():
-    g_file = os.getcwd()+'/intersection/saved_graph/graph_out.pkl'
+    g_file = os.getcwd()+'/saved_graph/graph_out.pkl'
     with open(g_file, 'rb') as pckl_file:
         g = pickle.load(pckl_file)
     Vij = g['Vij']
@@ -80,7 +80,7 @@ def save_graph_and_dicts(G_aux, Vij, sys_state2vertex, test_state2vertex):
     g.update({'sys_state2vertex': sys_state2vertex})
     g.update({'test_state2vertex': test_state2vertex})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/intersection/saved_graph/'
+    output_dir = os.getcwd()+'/saved_graph/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'graph_out.pkl'

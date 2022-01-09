@@ -223,8 +223,8 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
 
     # Find final goal states for terminal condition
     goal_states = []
-    all_tester_states = tester_car_intersection_states + tester_car_not_intersection_states
-    all_ped_states = tester_pedestrian_crosswalk_states + tester_pedestrian_not_crosswalk_states
+    all_tester_states =  tester_car_not_intersection_states
+    all_ped_states = tester_pedestrian_not_crosswalk_states
     for car_state in all_tester_states:
         for ped_state in all_ped_states:
             goal_states.append(((system_goal_state), (car_state), ped_state))
