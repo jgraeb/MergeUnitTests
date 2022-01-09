@@ -320,7 +320,7 @@ def set_up_partial_order_for_rh():
             partial_order_i = construct_partial_order(G_aux, goal)
             # print('{0}: {1}'.format(goal,partial_order_i))
             Vij.update({goal: partial_order_i})
-        save_graph_and_dicts(G_aux, Vj, sys_state2vertex, test_state2vertex)
+        save_graph_and_dicts(G_aux, Vij, sys_state2vertex, test_state2vertex)
     return Vij, G_aux, sys_state2vertex, test_state2vertex
 
 
