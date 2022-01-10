@@ -25,6 +25,7 @@ def rh_base_spec():
 
     # add the dynamics for the system
     sys_safe |= dynamics_system(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+    # st()
     sys_safe |= intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     y_val = 3
     z_min = 0
@@ -45,11 +46,12 @@ def rh_base_spec():
     tester_safe = set()
 
     # Add the dynamics
-    tester_safe |= dynamics_tester_car(state_dict, ('y1','z1'), y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    tester_safe |= dynamics_tester_car(state_dict, ('y1','z1'), y_min_tester, y_max_tester, z_min_tester, z_max_tester)
+    # st()
     tester_safe |= dynamics_ped('p', min_cw, max_cw)
 
     # Add no collissions between any agents
-    no_collisions_tester, no_collisions_sys = collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk)
+    no_collisions_tester, no_collisions_sys = collision_safety(y_min_tester, y_max_tester, z_min_tester, z_max_tester, crosswalk)
     tester_safe |= no_collisions_tester
     sys_safe |= no_collisions_sys
 
@@ -132,6 +134,7 @@ def rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict):
     ego_spec.init = set()
     test_spec.init = set()
     assumption, prog_guarantee, goal_states = add_psi_i_j_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
+    #st()
     test_spec.prog |= prog_guarantee
     ego_spec.safety |= assumption
     return test_spec, ego_spec, goal_states
@@ -164,7 +167,7 @@ def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
     verify_winset(states_in_W, test_spec, ego_spec, type="in_W")
     verify_winset(states_out_fp, test_spec, ego_spec, type="out_W")
 
-    st()
+    #st()
 
 # Function to verify winset:
 def verify_winset(states, test_spec, ego_spec, type="in_W"):
@@ -194,9 +197,13 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
                 print("Printing states in winning set: ")
 
             if FILTER_FIXPOINT:
-                start_set = Vij[j]
-                states_in_winset, states_out_winset = check_all_states_in_winset(states_in_fp)
+                start_set_Gaux = Vij[j] # String form with Gaux vertices
+                start_set = [check_vj_string(vj) for vj in start_set_Gaux]
+                st()
+                sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
+                states_in_winset, states_out_winset = check_all_states_in_winset(states_in_fp, sys_ver2st_dict, test_ver2st_dict, start_set)
                 Wij.update({j: states_in_winset})
+                st()
                 # Verifying the winset
                 if VERIFY_W:
                     ego_spec, test_spec = rh_base_spec()
@@ -252,6 +259,7 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 
     Wij = dict()
     for key in Vij.keys():
+        st()
         Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
         Wij.update({key: Wj})
     return Wij
@@ -259,6 +267,7 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
 def synthesize_intersection_filter():
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
     Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+    st()
     return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 if __name__ == '__main__':

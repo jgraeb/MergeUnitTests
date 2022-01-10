@@ -17,7 +17,7 @@ from tulip.interfaces.omega import _grspec_to_automaton, _strategy_to_state_anno
 import logging
 import pdb
 from tulip import transys, spec, synth
-
+from intersection.graph_construction import *
 def synthesize_some_controller(aut):
     """Return a controller that implements the spec.
     If no controller exists,
@@ -175,14 +175,17 @@ def check_assumptions(state):
 
 ## Check if states are in winning set for receding horizon winning sets:
 # w_orig: original winning set from the fixpoint computation
-def check_all_states_in_winset(w_orig):
+def check_all_states_in_winset(w_original, sys_ver2st_dict, test_ver2st_dict, init_set):
     # winning_set = w_set.find_winning_set(aut)
     states_in_winset = []
     states_outside_winset = []
     # print('Filtered WS')
+    st()
+    start_set = [test_ver2st_dict[si] for si in init_set]
 
+    start_int_w_original = [si for si in start_set if si in w_original] # intersection of start_set and w_original
     # x2 < x1, since x2 is a second tester
-    for state in w_orig:
+    for state in start_int_w_original:
         state_dict = convert_tuple2dict(state)
         flg = check_assumptions(state_dict)
         if flg:
