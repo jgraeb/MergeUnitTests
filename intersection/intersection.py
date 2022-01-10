@@ -34,7 +34,7 @@ def synthesize_filter():
     #     print('Filter loaded successfully')
     #
     # except:
-    print('Synthesizing the filter')
+    print('Synthesizing the Filter')
     Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = synthesize_intersection_filter()
     save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
     return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict

@@ -8,7 +8,7 @@ from intersection.specifications import *
 from intersection.tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller
 
 
-PRINT_STATES_IN_COMPUTATION = True
+PRINT_STATES_IN_COMPUTATION = False
 FILTER_FIXPOINT = True
 VERIFY_W = False
 
@@ -34,7 +34,11 @@ def rh_base_spec():
 
     # tester car + pedestrian
     # initial positions
-    tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    y_min_tester = 0
+    y_max_tester = 7
+    z_min_tester = 3
+    z_max_tester = 3
+    tester_vars, min_cw, max_cw = tester_variables(y_min_tester, y_max_tester, z_min_tester, z_max_tester)
     tester_init = init_tester_vars()
 
     tester_prog = set()

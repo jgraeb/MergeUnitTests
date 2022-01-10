@@ -179,7 +179,7 @@ def check_all_states_in_winset(w_orig):
     # winning_set = w_set.find_winning_set(aut)
     states_in_winset = []
     states_outside_winset = []
-    print('Filtered WS')
+    # print('Filtered WS')
 
     # x2 < x1, since x2 is a second tester
     for state in w_orig:
@@ -189,8 +189,8 @@ def check_all_states_in_winset(w_orig):
             states_in_winset.append(state)
         else:
             states_outside_winset.append(state)
-        print(state)
-        print(flg)
+        # print(state)
+        # print(flg)
     return states_in_winset, states_outside_winset
 
 # Least fixpoint computation:
