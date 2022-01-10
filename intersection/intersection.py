@@ -37,7 +37,7 @@ def synthesize_filter():
     print('Synthesizing the filter')
     Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = synthesize_intersection_filter()
     save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
-    return Wij, Vij_dict, G_aux, sys_st2ver_dict, test_st2ver_dict
+    return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 def get_orientation(symb):
     """

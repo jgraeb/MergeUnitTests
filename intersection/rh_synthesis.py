@@ -9,8 +9,8 @@ from intersection.tools import WinningSet, check_all_states_in_winset, check_all
 
 
 PRINT_STATES_IN_COMPUTATION = True
-FILTER_FIXPOINT = False
-
+FILTER_FIXPOINT = True
+VERIFY_W = False
 
 # Function to get specifications for receeding horizon synthesis:
 # Base specification
@@ -70,10 +70,14 @@ def construct_spec_set_membership(Vj, sys_st2ver_dict, test_st2ver_dict):
     sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
     spec = "("
     for vj in Vj:
-        if vj in sys_ver2st_dict:
+        vj = check_vj_string(vj) # Converts string to numeric
+        if vj in list(sys_ver2st_dict.keys()):
             state_tup = sys_ver2st_dict[vj] ### Modify this line. Depending on vj, need to decide between sys_st2ver_dict or test_st2ver_dict
-        elif vj in test_ver2st_dict:
+        elif vj in list(test_ver2st_dict.keys()):
             state_tup = test_ver2st_dict[vj]
+        else:
+            raise Exception("state_tup not set!")
+
         state_dict = make_dict_from_tuple(state_tup)
         if spec == "(":
             spec += get_str_spec(state_dict)
@@ -81,6 +85,13 @@ def construct_spec_set_membership(Vj, sys_st2ver_dict, test_st2ver_dict):
             spec += " || " + get_str_spec(state_dict)
     spec += ")"
     return spec
+
+# If vj is a node in the auxiliary graph, this function converts it back:
+def check_vj_string(vj):
+    vj_str = str(vj) # Converts to string
+    vj_split = vj_str.split('_') # split at _, if any
+    vj_new = int(vj_split[0])
+    return vj_new
 
 def make_dict_from_tuple(tuple):
     out_dict = dict()
@@ -146,14 +157,23 @@ def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
     print(len(states_in_W))
 
     # Verify winning set:
-    counterexamples_in = verify_W(states_in_W, test_spec, ego_spec, type="in_W")
-    print("No. of ounterexamples in W: ")
-    print(len(counterexamples_in))
+    verify_winset(states_in_W, test_spec, ego_spec, type="in_W")
+    verify_winset(states_out_fp, test_spec, ego_spec, type="out_W")
+
     st()
-    counterexamples_out = verify_W(states_out_fp, test_spec, ego_spec, type="out_W")
-    print("No. of ounterexamples out W: ")
-    print(len(counterexamples_out))
-    st()
+
+# Function to verify winset:
+def verify_winset(states, test_spec, ego_spec, type="in_W"):
+    if type=="in_W":
+        counterexamples_in = verify_W(states, test_spec, ego_spec, type="in_W")
+        print("No. of ounterexamples in W: ")
+        print(len(counterexamples_in))
+    elif type=="out_W":
+        counterexamples_out = verify_W(states, test_spec, ego_spec, type="out_W")
+        print("No. of ounterexamples out W: ")
+        print(len(counterexamples_out))
+    else:
+        print("Type should be in_W or out_W")
 
 # Function to generate winning sets with receding horizon approach
 def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
@@ -164,16 +184,26 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
             W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
             states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
+
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
 
             if FILTER_FIXPOINT:
                 start_set = Vij[j]
-                states_in_winset, states_out_winset = check_all_states_in_winset_rh(W, fixpt, aut, goal_states, G_aux, sys_st2ver_dict, test_st2ver_dict, start_set)
+                states_in_winset, states_out_winset = check_all_states_in_winset(states_in_fp)
                 Wij.update({j: states_in_winset})
+                # Verifying the winset
+                if VERIFY_W:
+                    ego_spec, test_spec = rh_base_spec()
+                    ego_spec.init = set()
+                    test_spec.init = set()
+                    verify_winset(states_in_winset, test_spec, ego_spec, type="in_W")
+                    verify_winset(states_out_fp, test_spec, ego_spec, type="out_W")
             else:
                 Wij.update({j: states_in_fp})
+
+
     return Wij
 
 # Verify winset:

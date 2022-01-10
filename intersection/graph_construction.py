@@ -199,7 +199,7 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
     tester_car_intersection_states = [(0,3), (1,3), (2,3), (3,3)] # States of the tester car where the system needs to wait
     tester_car_not_intersection_states = [(4,3), (5,3), (6,3), (7,3)]
     tester_pedestrian_crosswalk_states = [1,2,3,4,5]
-    tester_pedestrian_not_crosswalk_states = [0,4,5,6,7]
+    tester_pedestrian_not_crosswalk_states = [0,6,7,8,9]
 
     # Find the states which satisfy the test specs
     g1_states = []
