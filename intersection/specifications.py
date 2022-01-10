@@ -25,8 +25,8 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
     for zi in range(z_min_grid,z_max_grid):
         for yi in range(y_min_grid, y_max_grid):
             cw_num = []
+            # Loop that finds all the pedestrian cells (if any) corresponding to (yi, zi)
             for loc in crosswalk.keys():
-                # st()
                 if crosswalk[loc] == (yi, zi):
                     cw_num.append(loc)
                 ped_string = ''
@@ -35,8 +35,10 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
                         ped_string = ped_string + '(p = '+str(item)+')'
                     else:
                         ped_string = ped_string + ' || (p = '+str(item)+')'
-
+                st()
+            # pedestrian not colliding with system car
             tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
+            # tester car not colliding with system car
             sys_safe |= {'(y1 = '+str(yi)+' && z1 = '+str(zi)+') -> X(!(y = '+str(yi)+' && z = '+str(zi)+ '))'}
 
             if not ped_string == '' and (yi,zi)==(3,2):
