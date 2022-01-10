@@ -28,15 +28,15 @@ CAR_IN_WAIT = [(0,3), (1,3), (2,3), (3,3)]
 
 def synthesize_filter():
     # read pickle file - if not there save a new one
-    # try:
-    #     print('Checking for the saved filter')
-    #     Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = load_ws_intersection()
-    #     print('Filter loaded successfully')
-    #
-    # except:
-    print('Synthesizing the Filter')
-    Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = synthesize_intersection_filter()
-    save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+    try:
+        print('Checking for the saved filter')
+        Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = load_ws_intersection()
+        print('Filter loaded successfully')
+
+    except:
+        print('Synthesizing the Filter')
+        Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = synthesize_intersection_filter()
+        save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
     return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 def get_orientation(symb):
@@ -193,29 +193,29 @@ class GridWorld:
     '''-----Basic gridworld simulation functions-----'''
 
     def strategy(self,agent):
-        st()
+        # st()
         actions = ['stay']
-        next_states = [((self.sys_agents[0].x,self.sys_agents[0].y),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc)]
+        next_states = [((agent.x,agent.y),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc)]
         if self.sys_agents[0].x >= 4:
-            if self.sys_agents[0].x == 4 and not (self.tester_peds[0].cwloc in PED_IN_WAIT) and not ((self.tester_cars[0].x,3) in CAR_IN_WAIT):
-                next_states.append(((state_dict['y']-1,state_dict['z']),(state_dict[y1,3]),state_dict['p']))
+            if agent.x == 4 and not (self.tester_peds[0].cwloc in PED_IN_WAIT) and not ((self.tester_cars[0].x,3) in CAR_IN_WAIT):
+                next_states.append(((agent.x-1,agent.y),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc))
                 actions.append('n')
-            elif sys_state['y'] > 4:
-                next_states.append((state_dict['y']-1,state_dict['z']))
+            elif agent.x > 4:
+                next_states.append(((agent.x-1,agent.y),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc))
                 actions.append('n')
-        elif not state_dict['p'] in PED_IN_WAIT and not (state_dict['y1'],3) in CAR_IN_WAIT:
-            next_states.append(((state_dict['y'],state_dict['z']-1),(state_dict[y1,3]),state_dict['p']))
+        elif not (self.tester_peds[0].cwloc in PED_IN_WAIT) and not ((self.tester_cars[0].x,3) in CAR_IN_WAIT):
+            next_states.append(((agent.x,agent.y-1),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc))
             actions.append('w')
 
-
+        # st()
         agent_actions = self.enabled_actions(agent)
         acts = []
         for val in agent_actions.keys():
             acts.append(val)
 
-        if agent.goal in acts:
+        if agent.goal in actions:
             return agent.goal
-        action = np.random.choice(acts)
+        action = np.random.choice(actions)
         return action
 
     def run_sim(self):
@@ -555,7 +555,7 @@ class GridWorld:
             agent_dict[name][2] = self.crosswalk[enabled_actions[action]][1]
 
         if check:
-            st()
+            # st()
             debug = True
             state = {'y': self.sys_agents[0].x, 'z': self.sys_agents[0].y, 'y1': agent_dict['car'][1], 'z1': 3, 'p': agent_dict['ped'][3]}
             origin_state = {'y':self.sys_agents[0].x,'z':self.sys_agents[0].y,'y1':self.tester_cars[0].x,'z1':3, 'p':self.tester_peds[0].cwloc}
@@ -576,26 +576,29 @@ class GridWorld:
 
     def check_system_states_in_winset(self, origin_state_dict, state_dict, debug = False):
         # st()
-        if origin_state == {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}:
-            st()
+        # if origin_state == {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}:
+        #     st()
         # Find all next states
-        st()
+        # st()
+        debug = False
         sys_state = (state_dict['y'],state_dict['z'])
         car_state = (state_dict['y1'],3)
-        next_states = [((state_dict['y'],state_dict['z']),(state_dict[y1,3]),state_dict['p'])]
-        if sys_state['y'] >= 4:
-            if sys_state['y'] == 4 and not (state_dict['p'] in PED_IN_WAIT) and not ((state_dict['y1'],3) in CAR_IN_WAIT):
-                next_states.append(((state_dict['y']-1,state_dict['z']),(state_dict[y1,3]),state_dict['p']))
-            elif sys_state['y'] > 4:
-                next_states.append((state_dict['y']-1,state_dict['z']))
-        elif not state_dict['p'] in PED_IN_WAIT and not (state_dict['y1'],3) in CAR_IN_WAIT:
-            next_states.append(((state_dict['y'],state_dict['z']-1),(state_dict[y1,3]),state_dict['p']))
+        ped_state = state_dict['p']
+        next_states = [(sys_state, car_state, ped_state)]
+        if sys_state[0] >= 4:
+            if sys_state[0] == 4 and not (ped_state in PED_IN_WAIT) and not (car_state in CAR_IN_WAIT):
+                next_states.append(((state_dict['y']-1,state_dict['z']), car_state, ped_state))
+            elif sys_state[0] > 4:
+                next_states.append(((state_dict['y']-1,state_dict['z']), car_state, ped_state))
+        elif not (ped_state in PED_IN_WAIT) and not (car_state in CAR_IN_WAIT):
+            next_states.append(((state_dict['y'],state_dict['z']-1), car_state, ped_state))
 
         # Find if all of these states are in the winning set Wij
         # Find j or original state for each i and compare to that value for all new states
+        # st()
         progress = False
-        origin_state = ((origin_state_dict['y'],origin_state_dict['z']),(origin_state_dict[y1],3),origin_state_dict['p'])
-        state =  ((state_dict['y'],state_dict['z']),(state_dict[y1],3),state_dict['p'])
+        origin_state = ((origin_state_dict['y'],origin_state_dict['z']), (origin_state_dict['y1'],3), origin_state_dict['p'])
+        state =  (sys_state, car_state, ped_state)
         for i in self.Wij:
             if debug:
                 st()
@@ -605,21 +608,22 @@ class GridWorld:
                 num_state.update({statenum: next_state})
                 j_next.update({statenum: None})
             j_original = None
-            for j in Wij[i]:
+            for j in self.Wij[i]:
                 if debug:
                     st()
                 # check if state is in the winning set
-                if origin_state in Wij[i][j]:
+                if origin_state in self.Wij[i][j]:
                     j_original = j
                 for statenum, next_state in enumerate(next_states):
                     if debug:
+                        print('Stop here')
                         st()
-                    if next_state in Wij[i][j]:
+                    if next_state in self.Wij[i][j]:
                         storej = j
                         if j == 0.0:
                             storej = 'goal'
                         j_next.update({statenum: storej})
-            # st()
+            st()
             if j_original and all(j_next.values()):
                 for key in j_next.keys():
                     if j_next[key] == 'goal':
@@ -627,6 +631,7 @@ class GridWorld:
                 j_next_max = max(j_next, key=j_next.get)
                 if j_next_max <= j_original:
                     progress = True
+        st()
         return progress
 
 

@@ -130,10 +130,14 @@ def play_game(intersectionfile):
     # Initial step by testers:
     for pedestrian in gridworld.tester_peds:
         # currently pick a random enabled action
-        action = choice([key for key in gridworld.enabled_actions_pedestrian(pedestrian).keys()])
+        # st()
+        # action = choice([key for key in gridworld.enabled_actions_pedestrian(pedestrian).keys()])
+        action = 'stay'
         gridworld.pedestrian_take_step(pedestrian,action)
     for test_agent in gridworld.tester_cars:
-        action = choice([key for key in gridworld.enabled_actions_car(test_agent).keys()])
+        # st()
+        # action = choice([key for key in gridworld.enabled_actions_car(test_agent).keys()])
+        action = 'stay'
         gridworld.tester_take_step(test_agent,action)
 
     gridworld.print_intersection(gridworld.timestep)
