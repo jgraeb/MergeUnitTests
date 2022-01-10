@@ -137,8 +137,8 @@ def check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict):
     for state in test_st2ver_dict.keys():
         state_dict = convert_tuple2dict(state)
         check_bdd = W.check_state_in_fp(aut, fixpt, state_dict)
-        print(state)
-        print(check_bdd)
+        # print(state)
+        # print(check_bdd)
         if check_bdd:
             states_in_winset.append(state)
         else:
