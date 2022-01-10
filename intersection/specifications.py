@@ -39,8 +39,8 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
             tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
             sys_safe |= {'(y1 = '+str(yi)+' && z1 = '+str(zi)+') -> X(!(y = '+str(yi)+' && z = '+str(zi)+ '))'}
 
-            if not ped_string == '':
-                tester_safe |= {'!(y1 = '+str(yi)+' && z1 = '+str(zi)+' && '+str(ped_string)+')'}
+            if not ped_string == '' and (yi,zi)==(3,2):
+                # tester_safe |= {'!(y1 = '+str(yi)+' && z1 = '+str(zi)+' && '+str(ped_string)+')'}
                 tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!('+str(ped_string)+'))'}
                 sys_safe |= {'('+str(ped_string)+') -> X(!(y='+str(yi)+' && z = '+str(zi)+ '))'}
 
