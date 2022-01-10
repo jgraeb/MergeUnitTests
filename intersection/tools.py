@@ -18,6 +18,24 @@ import logging
 import pdb
 from tulip import transys, spec, synth
 
+def synthesize_some_controller(aut):
+    """Return a controller that implements the spec.
+    If no controller exists,
+    then raise an `Exception`.
+    The returned controller is
+    represented as a `networkx` graph.
+    """
+    z, yij, xijk = gr1.solve_streett_game(aut)
+    gr1.make_streett_transducer(
+        z, yij, xijk, aut)
+    g = enum.action_to_steps(
+        aut,
+        env='env',
+        sys='impl',
+        qinit=aut.qinit)
+    return g
+
+
 def create_intersection_from_file(intersectionfile):
     map = od()
     f = open(intersectionfile, 'r')

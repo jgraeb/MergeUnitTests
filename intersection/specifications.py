@@ -35,7 +35,7 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
                         ped_string = ped_string + '(p = '+str(item)+')'
                     else:
                         ped_string = ped_string + ' || (p = '+str(item)+')'
-                st()
+                # st()
             # pedestrian not colliding with system car
             tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
             # tester car not colliding with system car
