@@ -4,7 +4,7 @@
 from graph_construction import *
 import numpy as np
 from specifications import *
-from tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp
+from tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller
 from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 import pdb
 
@@ -127,7 +127,7 @@ def find_winset(test_spec, ego_spec):
     w_set = WinningSet()
     w_set.set_spec(gr_spec)
     aut = w_set.make_compatible_automaton(gr_spec)
-    # g = synthesize_some_controller(aut)
+    g = synthesize_some_controller(aut)
     fp = w_set.find_winning_set(aut)
     return w_set, fp, aut
 
@@ -144,6 +144,15 @@ def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
     print(len(states_in_fp))
     print("States in winning set: ")
     print(len(states_in_W))
+
+    # Verify winning set:
+    counterexamples_in = verify_W(states_in_W, test_spec, ego_spec, type="in_W")
+    print("No. of ounterexamples in W: ")
+    print(len(counterexamples_in))
+    st()
+    counterexamples_out = verify_W(states_out_fp, test_spec, ego_spec, type="out_W")
+    print("No. of ounterexamples out W: ")
+    print(len(counterexamples_out))
     st()
 
 # Function to generate winning sets with receding horizon approach
@@ -167,6 +176,35 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
                 Wij.update({j: states_in_fp})
     return Wij
 
+# Verify winset:
+# Function to verify that the winning set is correct:
+def verify_W(list_states, test_spec, ego_spec, type="in_W"):
+    counterexamples = []
+    for state in list_states:
+        state_dict = convert_tuple2dict(state)
+        # Set initial conditions to present state and seeing if a controller can be synthesized:
+        test_spec.init = {'y1 = ' + str(state_dict['y1']), 'z1 = ' + str(state_dict['z1']), 'p=' + str(state_dict['p'])}
+        ego_spec.init = {'y = '+ str(state_dict['y']), 'z = ' + str(state_dict['z'])}
+        gr_spec = make_grspec(test_spec, ego_spec) # Placing test_spec as sys_spec and sys_spec as env_spec to
+        w_set = WinningSet()
+        w_set.set_spec(gr_spec)
+        aut = w_set.make_compatible_automaton(gr_spec)
+        if type == "in_W":
+            try:
+                g = synthesize_some_controller(aut)
+            except:
+                print('Found counterexample in W')
+                counterexamples.append(state)
+        elif type == "out_W":
+            try:
+                g = synthesize_some_controller(aut)
+                counterexamples.append(state)
+                print('Found counterexample out W')
+            except:
+                pass
+        else:
+            pass
+    return counterexamples
 
 # Function to get the winning sets for all states
 def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
