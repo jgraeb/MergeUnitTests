@@ -48,7 +48,7 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
             # check for pedestrian
     return tester_safe, sys_safe
 
-def dynamics_car(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
+def dynamics_system(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
     '''
     Add the dynamics from the intersection grid to the specifications.
     '''
@@ -59,12 +59,36 @@ def dynamics_car(state_dict, agent_var_list, y_min_grid, y_max_grid, z_min_grid,
             for jj in range(z_min_grid,z_max_grid):
                 if not state_dict[(ii,jj)] == '*':
                     next_steps_string = ''
-                    for item in next_state_dict[(ii,jj)]:
-                        if next_steps_string == '':
-                            next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(item[0])+' && '+str(agent_var[1])+' = '+str(item[1])+')'
-                        else:
-                            next_steps_string = next_steps_string + ' || ('+str(agent_var[0])+' = '+str(item[0])+' && '+str(agent_var[1])+' = '+str(item[1])+')'
+                    # always add current state
+                    next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+                    if state_dict[(ii,jj)] == '↑':
+                        next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii-1)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+                    elif state_dict[(ii,jj)] == '←':
+                        next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj-1)+')'
+                    elif state_dict[(ii,jj)] == '+':
+                        if ii == 4:
+                            next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii-1)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+                        elif ii == 3:
+                            next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj-1)+')'
+
                     dynamics_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
+    return dynamics_spec
+
+def dynamics_tester_car(state_dict, agent_var, y_min_grid, y_max_grid, z_min_grid, z_max_grid):
+    '''
+    Add the dynamics from the intersection grid to the specifications.
+    '''
+    jj = 3 # tester car is only in z = 3 lane
+    dynamics_spec = set()
+    for ii in range(y_min_grid,y_max_grid):
+        if not state_dict[(ii,jj)] == '*':
+            next_steps_string = ''
+            # always add current state
+            next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+            if state_dict[(ii,jj)] == '↓':
+                next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii+1)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+
+            dynamics_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
     return dynamics_spec
 
 def dynamics_ped(ped_var, min_cw, max_cw):
@@ -85,7 +109,9 @@ def once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, 
     '''
     Once the system is in cell (3,4) it must not stop anymore.
     '''
-    next_state_dict = find_next_state_dict(state_dict)
+    z_min = 0
+    z_max = 4 # we only care about the states up to 4 in z direction for the system
+    # next_state_dict = find_next_state_dict(state_dict)
     safety_spec = set()
     for jj in range(z_min,z_max+1):
         if not state_dict[(y_val,jj)] == '*':
@@ -102,8 +128,8 @@ def intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_gr
     '''
     Once the intersection is free, the car must go.
     '''
-    tester_car_not_intersection_states = [(0,3), (4,3), (5,3), (6,3), (7,3)]
-    tester_pedestrian_not_crosswalk_states = [4,5,6,7]
+    tester_car_not_intersection_states = [(4,3), (5,3), (6,3), (7,3)]
+    tester_pedestrian_not_crosswalk_states = [6,7,8,9]
     system_states = [(4,4), (5,4), (6,4), (7,4)]
     safety_spec = set()
     for sys_state in system_states:
@@ -115,10 +141,10 @@ def intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_gr
 
 # Variables:
 def sys_variables():
-    y_min_grid = 0
+    y_min_grid = 3
     y_max_grid = 7
     z_min_grid = 0
-    z_max_grid = 7
+    z_max_grid = 4
     sys_vars = {}
     # bounds = [x_min_grid,x_max_grid, y_min_grid,y_max_grid]
     sys_vars['y'] = (y_min_grid, y_max_grid)
@@ -183,7 +209,7 @@ def intersection_specs(state_dict, crosswalk):
     sys_safe = set()
 
     # add the dynamics for the system
-    sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+    sys_safe |= dynamics_system(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
     sys_safe |= intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     y_val = 3
     z_min = 0
@@ -192,6 +218,10 @@ def intersection_specs(state_dict, crosswalk):
     sys_safe |= once_system_entered_intersection_keep_driving(state_dict, agent_var, y_val, z_min, z_max)
     # tester car + pedestrian
     # initial positions
+    y_min_t = 3
+    y_min_t = 3
+    z_min_t = 0
+    z_max_t = 7
     tester_vars, min_cw, max_cw = tester_variables(y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     tester_init = init_tester_vars()
 
@@ -199,7 +229,7 @@ def intersection_specs(state_dict, crosswalk):
     tester_safe = set()
 
     # Add the dynamics
-    tester_safe |= dynamics_car(state_dict, [('y1','z1')], y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    tester_safe |= dynamics_tester_car(state_dict, ('y1','z1'), y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     tester_safe |= dynamics_ped('p', min_cw, max_cw)
 
     # Add no collissions between any agents

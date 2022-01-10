@@ -24,7 +24,7 @@ def rh_base_spec():
     sys_safe = set()
 
     # add the dynamics for the system
-    sys_safe |= dynamics_car(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
+    sys_safe |= dynamics_system(state_dict,[('y','z')], y_min_grid,y_max_grid, z_min_grid,z_max_grid)
     sys_safe |= intersection_clear_eventually_system_drives(state_dict, y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     y_val = 3
     z_min = 0
@@ -41,7 +41,7 @@ def rh_base_spec():
     tester_safe = set()
 
     # Add the dynamics
-    tester_safe |= dynamics_car(state_dict, [('y1','z1')], y_min_grid, y_max_grid, z_min_grid, z_max_grid)
+    tester_safe |= dynamics_tester_car(state_dict, ('y1','z1'), y_min_grid, y_max_grid, z_min_grid, z_max_grid)
     tester_safe |= dynamics_ped('p', min_cw, max_cw)
 
     # Add no collissions between any agents

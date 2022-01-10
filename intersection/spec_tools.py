@@ -33,6 +33,7 @@ def make_grspec(sys_spec, env_spec):
     specs.qinit = r'\A \E'
     specs.moore = False
     specs.plus_one = False
+    print(specs.pretty())
     # Mealy / Moore specifications; While+1; system cannot violate it's spec
     return specs
 
