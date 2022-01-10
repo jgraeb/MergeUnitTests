@@ -36,7 +36,7 @@ def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):
                         ped_string = ped_string + ' || (p = '+str(item)+')'
                 # st()
             # pedestrian not colliding with system car
-            tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
+            # tester_safe |= {'(y = '+str(yi)+' && z = '+str(zi)+') -> X(!(y1 = '+str(yi)+' && z1 = '+str(zi)+'))'}
             # tester car not colliding with system car
             sys_safe |= {'(y1 = '+str(yi)+' && z1 = '+str(zi)+') -> X(!(y = '+str(yi)+' && z = '+str(zi)+ '))'}
 
@@ -82,14 +82,13 @@ def dynamics_tester_car(state_dict, agent_var, y_min_grid, y_max_grid, z_min_gri
     jj = 3 # tester car is only in z = 3 lane
     dynamics_spec = set()
     for ii in range(y_min_grid,y_max_grid):
-        if not state_dict[(ii,jj)] == '*':
-            next_steps_string = ''
-            # always add current state
-            next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+')'
-            if state_dict[(ii,jj)] == '↓':
-                next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii+1)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+        next_steps_string = ''
+        # always add current state
+        next_steps_string = next_steps_string + '('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+')'
+        if state_dict[(ii,jj)] == '↓' or state_dict[(ii,jj)] == '+':  # tester car always drives down
+            next_steps_string = next_steps_string + '|| ('+str(agent_var[0])+' = '+str(ii+1)+' && '+str(agent_var[1])+' = '+str(jj)+')'
 
-            dynamics_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
+        dynamics_spec |= {'('+str(agent_var[0])+' = '+str(ii)+' && '+str(agent_var[1])+' = '+str(jj)+') -> X(('+ next_steps_string +'))'}
     return dynamics_spec
 
 def dynamics_ped(ped_var, min_cw, max_cw):
