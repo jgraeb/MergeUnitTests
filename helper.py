@@ -46,14 +46,14 @@ def save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict):
     output_dir = os.getcwd()+'/highway_merge/saved_filters/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    filename = 'ws_out_files.pkl'
+    filename = 'ws_out_files.p'
     filepath = output_dir + filename
     print('Saving winning set in pkl file')
     with open(filepath, 'wb') as pckl_file:
         pickle.dump(ws, pckl_file)
 
 def load_ws():
-    ws_file = os.getcwd()+'/highway_merge/saved_filters/ws_out_files.pkl'
+    ws_file = os.getcwd()+'/highway_merge/saved_filters/ws_out_files.p'
     with open(ws_file, 'rb') as pckl_file:
         ws = pickle.load(pckl_file)
     Wij = ws['Wij']
@@ -62,8 +62,37 @@ def load_ws():
     ver2st_dict = ws['ver2st_dict']
     return Wij, Vij_dict, state_tracker, ver2st_dict
 
+def save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
+    # save objects in dictionary
+    ws = dict()
+    ws.update({'Wij': Wij})
+    ws.update({'Vij': Vij})
+    ws.update({'sys_st2ver_dict': sys_st2ver_dict})
+    ws.update({'test_st2ver_dict': test_st2ver_dict})
+    ws.update({'G_aux': G_aux})
+    # save dict in pkl file
+    output_dir = os.getcwd()+'/intersection/saved_filters/'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    filename = 'ws_out_files.p'
+    filepath = output_dir + filename
+    print('Saving winning set in pkl file')
+    with open(filepath, 'wb') as pckl_file:
+        pickle.dump(ws, pckl_file)
+
+def load_ws_intersection():
+    ws_file = os.getcwd()+'/intersection/saved_filters/ws_out_files.p'
+    with open(ws_file, 'rb') as pckl_file:
+        ws = pickle.load(pckl_file)
+    Wij = ws['Wij']
+    Vij = ws['Vij']
+    sys_st2ver_dict = ws['sys_st2ver_dict']
+    test_st2ver_dict = ws['test_st2ver_dict']
+    G_aux = ws['G_aux']
+    return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
+
 def load_graph_dicts():
-    g_file = os.getcwd()+'/saved_graph/graph_out.p'
+    g_file = os.getcwd()+'/intersection/saved_graph/graph_out.p'
     with open(g_file, 'rb') as pckl_file:
         g = pickle.load(pckl_file)
     Vij = g['Vij']
@@ -80,7 +109,7 @@ def save_graph_and_dicts(G_aux, Vij, sys_state2vertex, test_state2vertex):
     g.update({'sys_state2vertex': sys_state2vertex})
     g.update({'test_state2vertex': test_state2vertex})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/saved_graph/'
+    output_dir = os.getcwd()+'/intersection/saved_graph/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'graph_out.p'

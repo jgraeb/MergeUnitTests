@@ -9,10 +9,9 @@ import logging
 from tulip import transys, spec, synth
 from tulip.interfaces.omega import _grspec_to_automaton
 import tulip.interfaces.omega as omega_intf
-from intersection import make_state_dictionary_for_specification
-from tools import create_intersection_from_file
-from spec_tools import Spec, make_grspec, check_circular, check_specs
-from graph_construction import find_next_state_dict
+from intersection.tools import create_intersection_from_file
+from intersection.spec_tools import Spec, make_grspec, check_circular, check_specs
+from intersection.graph_construction import find_next_state_dict
 from ipdb import set_trace as st
 
 def collision_safety(y_min_grid, y_max_grid, z_min_grid, z_max_grid, crosswalk):

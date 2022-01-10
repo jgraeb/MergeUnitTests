@@ -9,7 +9,6 @@ import logging
 from tulip import transys, spec, synth
 from tulip.interfaces.omega import _grspec_to_automaton
 import tulip.interfaces.omega as omega_intf
-from intersection import make_state_dictionary_for_specification
 
 class Spec:
     def __init__(self,sys_vars,init,safety,progress):

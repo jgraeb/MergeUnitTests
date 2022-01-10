@@ -1,12 +1,12 @@
 ## Apurva Badithela and Josefine Graebener
 # Receding horizon winning set synthesis for intersection
-
-from graph_construction import *
 import numpy as np
-from specifications import *
-from tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller
-from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 import pdb
+# from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
+from intersection.graph_construction import *
+from intersection.specifications import *
+from intersection.tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller
+
 
 PRINT_STATES_IN_COMPUTATION = True
 FILTER_FIXPOINT = False
@@ -15,7 +15,7 @@ FILTER_FIXPOINT = False
 # Function to get specifications for receeding horizon synthesis:
 # Base specification
 def rh_base_spec():
-    intersectionfile = 'intersectionfile.txt'
+    intersectionfile = 'intersection/intersectionfile.txt'
     state_dict, crosswalk = create_intersection_from_file(intersectionfile)
 
     sys_vars, y_min_grid, y_max_grid, z_min_grid, z_max_grid = sys_variables()
@@ -133,7 +133,7 @@ def find_winset(test_spec, ego_spec):
 
 # Test specification:
 def test_intersection_spec(G_aux, sys_st2ver_dict, test_st2ver_dict):
-    intersectionfile = 'intersectionfile.txt'
+    intersectionfile = 'intersection/intersectionfile.txt'
     state_dict, crosswalk = create_intersection_from_file(intersectionfile)
     ego_spec, test_spec = intersection_specs(state_dict, crosswalk)
     # st()
@@ -221,6 +221,11 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
         Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
         Wij.update({key: Wj})
     return Wij
+
+def synthesize_intersection_filter():
+    Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
+    Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+    return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 if __name__ == '__main__':
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()

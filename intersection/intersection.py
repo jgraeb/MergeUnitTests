@@ -18,13 +18,26 @@ import os
 from copy import deepcopy
 from ipdb import set_trace as st
 from collections import OrderedDict as od
+from intersection.rh_synthesis import synthesize_intersection_filter
+from intersection.tools import create_intersection_from_file
 # from intersection.test_parameters import INTERSECTIONFILE
 
 MAX_TIMESTEP = 30
+PED_IN_WAIT = [1, 2, 3, 4, 5]
+CAR_IN_WAIT = [(0,3), (1,3), (2,3), (3,3)]
 
 def synthesize_filter():
-    # TODO
-    pass
+    # read pickle file - if not there save a new one
+    # try:
+    #     print('Checking for the saved filter')
+    #     Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = load_ws_intersection()
+    #     print('Filter loaded successfully')
+    #
+    # except:
+    print('Synthesizing the filter')
+    Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = synthesize_intersection_filter()
+    save_ws_comp_result_intersection(Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
+    return Wij, Vij_dict, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 def get_orientation(symb):
     """
@@ -46,7 +59,7 @@ def get_orientation(symb):
 
 class GridWorld:
     def __init__(self, initial_scene, intersectionfile, sys_agents=None, tester_agents=None, turn=None):
-        self.map, self.crosswalk = self.create_intersection_from_file(intersectionfile)
+        self.map, self.crosswalk = create_intersection_from_file(intersectionfile)
         self.road_nodes, self.non_road_nodes = self.get_road_cells()
         self.transitions = self.get_edges()
         self.nodes = list(self.map.keys())
@@ -73,27 +86,29 @@ class GridWorld:
             self.turn = "tester"
         self.terminal = False # This is when ego arrives at its goal
         self.orientation_set = ['←','→','↓','↑','+','⇠','⇢','⇣','⇡']
+        self.Wij, self.Vij_dict, self.G_aux, self.sys_str2ver, self.test_str2ver = synthesize_filter()
 
 
     '''-----Basic gridworld setup functions-----'''
-    def create_intersection_from_file(self,intersectionfile):
-        map = od()
-        f = open(intersectionfile, 'r')
-        lines = f.readlines()
-        len_y = len(lines)
-        for i,line in enumerate(lines):
-            for j,item in enumerate(line):
-                if item != '\n':
-                    map[i,j] = item
-        # make dictionary that maps each crosswalk state to a grid cell
-        # currenly manual -> TODO automatically from file
-        crosswalk = dict()
-        start_cw = 2
-        end_cw = 6
-        y = 2
-        for i, num in enumerate(range(2*start_cw,2*(end_cw+1))):
-            crosswalk.update({i: (int(np.floor(num/2)), y)})
-        return map, crosswalk
+    # def create_intersection_from_file(self,intersectionfile):
+    #     map = od()
+    #     f = open(intersectionfile, 'r')
+    #     lines = f.readlines()
+    #     len_y = len(lines)
+    #     for i,line in enumerate(lines):
+    #         for j,item in enumerate(line):
+    #             if item != '\n':
+    #                 map[i,j] = item
+    #     # make dictionary that maps each crosswalk state to a grid cell
+    #     # currenly manual -> TODO crosswalk also automatically from file
+    #     crosswalk = dict()
+    #     start_cw = 1
+    #     end_cw = 5
+    #     y = 2
+    #     for i, num in enumerate(range(2*start_cw,2*(end_cw+1))):
+    #         crosswalk.update({i: (int(np.floor(num/2)), y)})
+    #     # st()
+    #     return map, crosswalk
 
     def get_road_cells(self):
         self.grid = od()
@@ -162,7 +177,7 @@ class GridWorld:
     def setup_simple_test(self):
         # self.find_actions_for_cell()
         agent = (7,4) # initial position
-        list_of_agents = [('Agent1',0,3,'s', 's'), ('Pedestrian', 2, 2, 0, 's')]
+        list_of_agents = [('Agent1',0,3,'s', 's'), ('Pedestrian', 1, 2, 0, 's')]
         self.sys_agents = [Agent(name='ego', x=agent[0],y=agent[1],v=0, goal='w', orientation = 'n')]
         for agent in list_of_agents:
             if agent[0] == 'Pedestrian':
@@ -172,11 +187,27 @@ class GridWorld:
         # self.tester_agents = [Agent(name=item[0], x=item[1],y=item[2],v=0, goal=item[3], orientation = item[4]) for item in list_of_agents]
         # agents = self.sys_agents + self.tester_agents
         self.print_intersection(self.timestep)
+        self.Wij, self.Vij_dict, self.G_aux, self.sys_str2ver, self.test_str2ver = synthesize_filter()
         # st()
 
     '''-----Basic gridworld simulation functions-----'''
 
     def strategy(self,agent):
+        st()
+        actions = ['stay']
+        next_states = [((self.sys_agents[0].x,self.sys_agents[0].y),(self.tester_cars[0].x,3),self.tester_peds[0].cwloc)]
+        if self.sys_agents[0].x >= 4:
+            if self.sys_agents[0].x == 4 and not (self.tester_peds[0].cwloc in PED_IN_WAIT) and not ((self.tester_cars[0].x,3) in CAR_IN_WAIT):
+                next_states.append(((state_dict['y']-1,state_dict['z']),(state_dict[y1,3]),state_dict['p']))
+                actions.append('n')
+            elif sys_state['y'] > 4:
+                next_states.append((state_dict['y']-1,state_dict['z']))
+                actions.append('n')
+        elif not state_dict['p'] in PED_IN_WAIT and not (state_dict['y1'],3) in CAR_IN_WAIT:
+            next_states.append(((state_dict['y'],state_dict['z']-1),(state_dict[y1,3]),state_dict['p']))
+            actions.append('w')
+
+
         agent_actions = self.enabled_actions(agent)
         acts = []
         for val in agent_actions.keys():
@@ -499,7 +530,7 @@ class GridWorld:
         print(line)
 
     """ Basic mcts functions """
-    def take_next_step(self, agent, action, agent_dict, sys_agent, check=False):
+    def take_next_step(self, agent, action, agent_dict, sys_agent, check=False, debug = False):
         '''Given a list of agent positions, update the chosen agent position after the step'''
         if agent[0] == 'Ped1':
             name = 'ped'
@@ -522,7 +553,82 @@ class GridWorld:
                 st()
             agent_dict[name][1] = self.crosswalk[enabled_actions[action]][0]
             agent_dict[name][2] = self.crosswalk[enabled_actions[action]][1]
+
+        if check:
+            st()
+            debug = True
+            state = {'y': self.sys_agents[0].x, 'z': self.sys_agents[0].y, 'y1': agent_dict['car'][1], 'z1': 3, 'p': agent_dict['ped'][3]}
+            origin_state = {'y':self.sys_agents[0].x,'z':self.sys_agents[0].y,'y1':self.tester_cars[0].x,'z1':3, 'p':self.tester_peds[0].cwloc}
+
+            if self.check_filter(origin_state, state, debug):
+                return agent_list
+            else:
+                return None
+        print('In take next step function')
+        # st()
         return agent_dict
+
+    def check_filter(self, origin_state, state, debug):
+        if debug:
+            st()
+        in_ws = self.check_system_states_in_winset(origin_state, state, debug)
+        return in_ws
+
+    def check_system_states_in_winset(self, origin_state_dict, state_dict, debug = False):
+        # st()
+        if origin_state == {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}:
+            st()
+        # Find all next states
+        st()
+        sys_state = (state_dict['y'],state_dict['z'])
+        car_state = (state_dict['y1'],3)
+        next_states = [((state_dict['y'],state_dict['z']),(state_dict[y1,3]),state_dict['p'])]
+        if sys_state['y'] >= 4:
+            if sys_state['y'] == 4 and not (state_dict['p'] in PED_IN_WAIT) and not ((state_dict['y1'],3) in CAR_IN_WAIT):
+                next_states.append(((state_dict['y']-1,state_dict['z']),(state_dict[y1,3]),state_dict['p']))
+            elif sys_state['y'] > 4:
+                next_states.append((state_dict['y']-1,state_dict['z']))
+        elif not state_dict['p'] in PED_IN_WAIT and not (state_dict['y1'],3) in CAR_IN_WAIT:
+            next_states.append(((state_dict['y'],state_dict['z']-1),(state_dict[y1,3]),state_dict['p']))
+
+        # Find if all of these states are in the winning set Wij
+        # Find j or original state for each i and compare to that value for all new states
+        progress = False
+        origin_state = ((origin_state_dict['y'],origin_state_dict['z']),(origin_state_dict[y1],3),origin_state_dict['p'])
+        state =  ((state_dict['y'],state_dict['z']),(state_dict[y1],3),state_dict['p'])
+        for i in self.Wij:
+            if debug:
+                st()
+            j_next = dict()
+            num_state = dict()
+            for statenum,next_state in enumerate(next_states):
+                num_state.update({statenum: next_state})
+                j_next.update({statenum: None})
+            j_original = None
+            for j in Wij[i]:
+                if debug:
+                    st()
+                # check if state is in the winning set
+                if origin_state in Wij[i][j]:
+                    j_original = j
+                for statenum, next_state in enumerate(next_states):
+                    if debug:
+                        st()
+                    if next_state in Wij[i][j]:
+                        storej = j
+                        if j == 0.0:
+                            storej = 'goal'
+                        j_next.update({statenum: storej})
+            # st()
+            if j_original and all(j_next.values()):
+                for key in j_next.keys():
+                    if j_next[key] == 'goal':
+                        j_next[key] = 0
+                j_next_max = max(j_next, key=j_next.get)
+                if j_next_max <= j_original:
+                    progress = True
+        return progress
+
 
     def enabled_actions_for_rollout(self, name, agentpos, agent_dict, sys_agent):
         enabled_actions = dict()
@@ -553,7 +659,6 @@ class GridWorld:
         # st()
         # print('Finding all node children to world')
         # self.print_state()
-        '''Find all children for a node'''
         if self.terminal:
             return set()
         if self.turn == "tester": # the testers take their turn
@@ -646,6 +751,7 @@ class GridWorld:
             testers_new = deepcopy(testers_original)
             # take the step
             # st()
+            print('Ped takes step')
             testers_new = self.take_next_step(ped, action1, testers_new, sys_agent)
             # actions2 = self.get_actions(agent2, agent_list_copy)
             # st()
@@ -655,7 +761,8 @@ class GridWorld:
             for action2 in actions2:
                 testers_new_2 = deepcopy(testers_new)
                 check = True
-                testers_new_2 = self.take_next_step(car, action2, testers_new_2, check, debug)
+                print('Car takes step')
+                testers_new_2 = self.take_next_step(car, action2, testers_new_2, sys_agent, check, debug)
                 if testers_new_2 is not None:
                     # print('A gridworld child was found')
                     # st()
