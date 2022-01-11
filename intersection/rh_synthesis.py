@@ -258,8 +258,9 @@ def check_Vij_goals(init_goals, sys_st2ver_dict, test_st2ver_dict):
         if good_goal:
             proper_goals.append(g)
         else:
-            print("Bad goal: ")
-            print(state_tup)
+            pass
+            # print("Bad goal: ")
+            # print(state_tup)
     return proper_goals
 
 # Function to get the winning sets for all states
@@ -280,9 +281,9 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             Wij.update({key: Wj})
             # st()
 
-            for k in Wj.keys():
-                print(k)
-                print(Wj[k])
+            # for k in Wj.keys():
+            #     print(k)
+            #     print(Wj[k])
 
     return Wij
 

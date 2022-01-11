@@ -572,6 +572,7 @@ class GridWorld:
         if debug:
             st()
         in_ws = self.check_system_states_in_winset(origin_state, state, debug)
+        st()
         return in_ws
 
     def check_system_states_in_winset(self, origin_state_dict, state_dict, debug = False):
@@ -579,8 +580,8 @@ class GridWorld:
         # if origin_state == {'x': 4, 'y': 1, 'x1': 5, 'y1': 2, 'x2': 3, 'y2': 2}:
         #     st()
         # Find all next states
-        # st()
-        debug = False
+        # if debug:
+        #     st()
         sys_state = (state_dict['y'],state_dict['z'])
         car_state = (state_dict['y1'],3)
         ped_state = state_dict['p']
@@ -596,12 +597,14 @@ class GridWorld:
         # Find if all of these states are in the winning set Wij
         # Find j or original state for each i and compare to that value for all new states
         # st()
+        if debug:
+            st()
         progress = False
         origin_state = ((origin_state_dict['y'],origin_state_dict['z']), (origin_state_dict['y1'],3), origin_state_dict['p'])
         state =  (sys_state, car_state, ped_state)
         for i in self.Wij:
-            if debug:
-                st()
+            # if debug:
+            #     st()
             j_next = dict()
             num_state = dict()
             for statenum,next_state in enumerate(next_states):
@@ -609,21 +612,21 @@ class GridWorld:
                 j_next.update({statenum: None})
             j_original = None
             for j in self.Wij[i]:
-                if debug:
-                    st()
+                # if debug:
+                #     st()
                 # check if state is in the winning set
                 if origin_state in self.Wij[i][j]:
                     j_original = j
                 for statenum, next_state in enumerate(next_states):
-                    if debug:
-                        print('Stop here')
-                        st()
+                    # if debug:
+                    #     print('Stop here')
+                    #     st()
                     if next_state in self.Wij[i][j]:
                         storej = j
                         if j == 0.0:
                             storej = 'goal'
                         j_next.update({statenum: storej})
-            st()
+            # st()
             if j_original and all(j_next.values()):
                 for key in j_next.keys():
                     if j_next[key] == 'goal':
@@ -631,7 +634,8 @@ class GridWorld:
                 j_next_max = max(j_next, key=j_next.get)
                 if j_next_max <= j_original:
                     progress = True
-        st()
+        if debug:
+            st()
         return progress
 
 
