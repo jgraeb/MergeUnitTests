@@ -165,6 +165,16 @@ def check_assumptions(state):
         if ped_crossed(state) or test_car_crossed(state):
             in_W = False
 
+    # Ego has not reached the intersection and tester car is in the wait set but pedestrian is in wait state: (s \notin W_inter, cT \notin Wc, P \in Wp)
+    if state['p'] >= 1 and (state['y1'] >= 0 and state['z1'] = 3) and (state['y'] > 4 and state['z'] == 4)):
+            in_W = False
+
+    if state['z'] == 4 and not (state['y'] == 4 or state['y'] == 3):
+        ped_crossed = lambda state: (state['p'] == 6 or state['p'] == 7 or state['p'] == 8 or state['p'] == 9)
+        test_car_crossed = lambda state: (state['z1'] == 3) and (state['y1'] == 4 or state['y1'] == 5 or state['y1'] == 6 or state['y1'] == 7)
+        if ped_crossed(state) or test_car_crossed(state):
+            in_W = False
+
     # Collisions:
     collision_ped = lambda state: (state['z'] == 2 and state['y'] == 3 and (state['p'] == 4 or state['p'] == 5))
     collision_car = lambda state: (state['z'] == 3 and state['y'] == 3 and state['y1'] == 3 and state['z1'] == 3)
