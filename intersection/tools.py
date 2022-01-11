@@ -180,8 +180,14 @@ def check_all_states_in_winset(w_original, sys_ver2st_dict, test_ver2st_dict, in
     states_in_winset = []
     states_outside_winset = []
     # print('Filtered WS')
-    st()
-    start_set = [test_ver2st_dict[si] for si in init_set]
+    # st()
+    start_set = []
+    for si in init_set:
+        # st()
+        if si in test_ver2st_dict.keys():
+            start_set.append(test_ver2st_dict[si])
+        else:
+            start_set.append(sys_ver2st_dict[si])
 
     start_int_w_original = [si for si in start_set if si in w_original] # intersection of start_set and w_original
     # x2 < x1, since x2 is a second tester

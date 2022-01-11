@@ -5,7 +5,7 @@ import pdb
 # from graph_construction import flip_state_dictionaries, set_up_partial_order_for_rh
 from intersection.graph_construction import *
 from intersection.specifications import *
-from intersection.tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller
+from intersection.tools import WinningSet, check_all_states_in_winset, check_all_states_in_fp, convert_tuple2dict, synthesize_some_controller, check_assumptions
 
 
 PRINT_STATES_IN_COMPUTATION = False
@@ -77,9 +77,9 @@ def construct_spec_set_membership(Vj, sys_st2ver_dict, test_st2ver_dict):
     spec = "("
     for vj in Vj:
         vj = check_vj_string(vj) # Converts string to numeric
-        if vj in list(sys_ver2st_dict.keys()):
+        if vj in sys_ver2st_dict.keys():
             state_tup = sys_ver2st_dict[vj] ### Modify this line. Depending on vj, need to decide between sys_st2ver_dict or test_st2ver_dict
-        elif vj in list(test_ver2st_dict.keys()):
+        elif vj in test_ver2st_dict.keys():
             state_tup = test_ver2st_dict[vj]
         else:
             raise Exception("state_tup not set!")
@@ -191,7 +191,7 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             test_rh_spec, ego_rh_spec, goal_states = rh_spec_add_progress(Vij, j, sys_st2ver_dict, test_st2ver_dict)
             W, fixpt, aut = find_winset(test_rh_spec, ego_rh_spec)
             states_in_fp, states_out_fp = check_all_states_in_fp(W, fixpt, aut, sys_st2ver_dict, test_st2ver_dict)
-
+            # st()
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
@@ -199,11 +199,11 @@ def rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
             if FILTER_FIXPOINT:
                 start_set_Gaux = Vij[j] # String form with Gaux vertices
                 start_set = [check_vj_string(vj) for vj in start_set_Gaux]
-                st()
+                # st()
                 sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
                 states_in_winset, states_out_winset = check_all_states_in_winset(states_in_fp, sys_ver2st_dict, test_ver2st_dict, start_set)
                 Wij.update({j: states_in_winset})
-                st()
+                # st()
                 # Verifying the winset
                 if VERIFY_W:
                     ego_spec, test_spec = rh_base_spec()
@@ -247,6 +247,21 @@ def verify_W(list_states, test_spec, ego_spec, type="in_W"):
             pass
     return counterexamples
 
+# Not all goals are valid according to specs. Function to sieve out bad goals:
+def check_Vij_goals(init_goals, sys_st2ver_dict, test_st2ver_dict):
+    proper_goals = []
+    sys_ver2st_dict, test_ver2st_dict = flip_state_dictionaries(sys_st2ver_dict, test_st2ver_dict)
+    for g in init_goals:
+        state_st = check_vj_string(g)
+        state_tup = test_ver2st_dict[state_st]
+        good_goal = check_assumptions(make_dict_from_tuple(state_tup))
+        if good_goal:
+            proper_goals.append(g)
+        else:
+            print("Bad goal: ")
+            print(state_tup)
+    return proper_goals
+
 # Function to get the winning sets for all states
 def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
     """
@@ -258,16 +273,23 @@ def get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict):
     """
 
     Wij = dict()
+    proper_goals = check_Vij_goals(list(Vij.keys()), sys_st2ver_dict, test_st2ver_dict) # Not all goals are valid according to specs
     for key in Vij.keys():
-        st()
-        Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
-        Wij.update({key: Wj})
+        if key in proper_goals:
+            Wj = rh_winsets(Vij[key], G_aux, sys_st2ver_dict, test_st2ver_dict)
+            Wij.update({key: Wj})
+            # st()
+
+            for k in Wj.keys():
+                print(k)
+                print(Wj[k])
+
     return Wij
 
 def synthesize_intersection_filter():
     Vij, G_aux, sys_st2ver_dict, test_st2ver_dict = set_up_partial_order_for_rh()
     Wij = get_states_in_rh_winsets(Vij, G_aux, sys_st2ver_dict, test_st2ver_dict)
-    st()
+    # st()
     return Wij, Vij, G_aux, sys_st2ver_dict, test_st2ver_dict
 
 if __name__ == '__main__':
