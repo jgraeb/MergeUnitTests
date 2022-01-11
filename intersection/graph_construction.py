@@ -230,27 +230,41 @@ def get_auxiliary_game_graph(G, sys_state2vertex, test_state2vertex):
 
     # connect the graph layers
     # connect from G to G_1
-    G_c1 = nx.compose(G,G_1)
+    # G_c1 = nx.compose(G,G_1)
     for state in g2_states:
         sys_state_num = sys_state2vertex[state] # g2 is always a system state
-        G_c1.remove_edges_from(list(G_c1.out_edges(sys_state_num))) # remove all edges from the node in the G graph
-        G_c1.add_edge(sys_state_num, str(sys_state_num)+'_1') # add edge from the node in G to the node in G_1
+        G.remove_edges_from(list(G.out_edges(sys_state_num))) # remove all edges from the node in the G graph
+        mapping = {sys_state_num: str(sys_state_num)+'_1'}  # 0->'a' and 1->'b'
+        G = nx.relabel_nodes(G, mapping, copy=False)
+
     # connect from G_c1 to G_2
-    G_c2 = nx.compose(G_c1,G_2)
+    # G_c2 = nx.compose(G_c1,G_2)
     for state in g1_states:
         sys_state_num = sys_state2vertex[state] # g1 is always a system state
-        G_c2.remove_edges_from(list(G_c2.out_edges(sys_state_num))) # remove all edges from the node in the G graph
-        G_c2.add_edge(sys_state_num, str(sys_state_num)+'_2') # add edge from the node in G to the node in G_1
+        G.remove_edges_from(list(G.out_edges(sys_state_num))) # remove all edges from the node in the G graph
+        mapping = {sys_state_num: str(sys_state_num)+'_2'}  # 0->'a' and 1->'b'
+        G = nx.relabel_nodes(G, mapping, copy=False)
+        # G_c2.add_edge(sys_state_num, str(sys_state_num)+'_2') # add edge from the node in G to the node in G_1
+
     # now connect G_c2 to G_T (terminal graph)
-    G_aux = nx.compose(G_c2,G_T)
+    # G_aux = nx.compose(G_c2,G_T)
     for state in g2_states:
         sys_state_num = sys_state2vertex[state] # g2 is always a system state
-        G_aux.remove_edges_from(list(G_aux.out_edges(str(sys_state_num)+'_2'))) # remove all edges from the node in the G graph
-        G_aux.add_edge(str(sys_state_num)+'_2', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
+        G_2.remove_edges_from(list(G_1.out_edges(str(sys_state_num)+'_2'))) # remove all edges from the node in the G graph
+        mapping = {str(sys_state_num)+'_2': str(sys_state_num)+'_T'}  # 0->'a' and 1->'b'
+        G_2 = nx.relabel_nodes(G_2, mapping, copy=False)
+        # G_aux.add_edge(str(sys_state_num)+'_2', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
     for state in g1_states:
         sys_state_num = sys_state2vertex[state] # g2 is always a system state
-        G_aux.remove_edges_from(list(G_aux.out_edges(str(sys_state_num)+'_1'))) # remove all edges from the node in the G graph
-        G_aux.add_edge(str(sys_state_num)+'_1', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
+        G_1.remove_edges_from(list(G_1.out_edges(str(sys_state_num)+'_1'))) # remove all edges from the node in the G graph
+        mapping = {str(sys_state_num)+'_1': str(sys_state_num)+'_T'}  # 0->'a' and 1->'b'
+        G_1 = nx.relabel_nodes(G_1, mapping, copy=False)
+
+    # compose the graphs`
+    G_c1 = nx.compose(G,G_1)
+    G_c2 = nx.compose(G_c1,G_2)
+    G_aux = nx.compose(G_c2,G_T)
+        # G_aux.add_edge(str(sys_state_num)+'_1', str(sys_state_num)+'_T') # add edge from the node in G to the node in G_1
     # now include 'goal' state in G_aux
     # G_aux.add_node('goal') # add the goal state that is connected to nodes in G_T
     # for state in goal_states:
@@ -312,6 +326,7 @@ def set_up_partial_order_for_rh():
             # print('{0}: {1}'.format(goal,partial_order_i))
             Vij.update({goal: partial_order_i})
         save_graph_and_dicts(G_aux, Vij, sys_state2vertex, test_state2vertex)
+        # st()
     return Vij, G_aux, sys_state2vertex, test_state2vertex
 
 
