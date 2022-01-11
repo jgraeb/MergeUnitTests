@@ -166,7 +166,7 @@ def check_assumptions(state):
             in_W = False
 
     # Ego has not reached the intersection and tester car is in the wait set but pedestrian is in wait state: (s \notin W_inter, cT \notin Wc, P \in Wp)
-    if state['p'] >= 1 and (state['y1'] >= 0 and state['z1'] = 3) and (state['y'] > 4 and state['z'] == 4)):
+    if (state['p'] >= 1) and (state['y1'] >= 0) and (state['z1'] == 3) and (state['y'] > 4) and (state['z'] == 4):
             in_W = False
 
     if state['z'] == 4 and not (state['y'] == 4 or state['y'] == 3):
