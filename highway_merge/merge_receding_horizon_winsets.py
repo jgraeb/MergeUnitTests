@@ -9,6 +9,7 @@ from omega.games import enumeration as enum
 from omega.symbolic import enumeration as sym_enum
 from copy import deepcopy
 import pdb
+import time
 from omega.games import gr1
 from omega.logic import syntax as stx
 from omega.symbolic import fixpoint as fx
@@ -38,7 +39,9 @@ except:
     from winning_set.winset_constants import PRINT_STATES_IN_COMPUTATION
 
 
-
+FIND_ALL_FP = False # Not going through all states to generate fixpoint
+# Receding horizon length (must be an even number)
+p = 6
 # Merge example
 # Tracklength
 # tracklength = 5
@@ -302,8 +305,16 @@ def get_all_states(tracklength, ego_n, tester_n):
             si_node = st2ver_dict[si]
             fi_node = get_dict_inv(states_vars_ST_ego, fi)
             G.add_edge(si_node, fi_node)
-
+    # G = remove_collisions(G, ver2st_dict) # Reduce size of graph and reduce partial order
     return G, st2ver_dict, ver2st_dict, state_tracker, states_vars_ST_test, states_vars_ST_ego
+
+# Remove nodes:
+def remove_collisions(G, ver2st_dict):
+    for ver in G.nodes:
+        st = ver2st_dict(ver)
+
+        G.remove_node(ver)
+    return G
 
 # Function to get inverse mapping of a dictionary
 # whose values are a dictionary
@@ -408,6 +419,7 @@ def get_Vj_for_all_goals(tracklength, G, st2ver_dict, ver2st_dict, state_tracker
 
     for i in goal_nodes:
         Vj_dict[i] = get_Wj(tracklength, G, st2ver_dict, ver2st_dict, i)
+    # st()
     return Vj_dict
 
 # Function to get Wi_j, which is the set of all states that are j*horizon steps
@@ -481,8 +493,8 @@ def add_psi_i_j_progress(Vij_dict, j, ver2st_dict, state_tracker):
     prog_guarantee = set()
     Vj = Vij_dict[j]
     assert j%2 == 0 # Make sure j is odd
-    if j >= 2:
-        FVj = Vij_dict[j-2]
+    if j >= p:
+        FVj = Vij_dict[j-p]
     else:
         FVj = Vij_dict[0]
 
@@ -629,6 +641,8 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
     prog_guarantee = set()
     jmax = len(Vij) - 1
     Wij = dict()
+    prev_Wij = []
+    t_winset_synth = 0
     for j in np.linspace(jmax, 0, jmax+1):
         if j%2 == 0:
             # Vij = Vij_dict
@@ -647,24 +661,58 @@ def get_winset_rh(tracklength, merge_setting, Vij, state_tracker, ver2st_dict,eg
             w_set = WinningSet()
             w_set.set_spec(gr_spec)
 
+            tic_aut = time.time()
             aut = w_set.make_compatible_automaton(gr_spec)
+            toc_aut = time.time()
+            print("make_compatible_automaton: {0}".format(toc_aut-tic_aut))
+
             # g = synthesize_some_controller(aut)
             agentlist = ['x1', 'x2']
+            tic_fp = time.time()
             fp = w_set.find_winning_set(aut)
+            toc_fp = time.time()
+            print("find_winning_set: {0}".format(toc_fp-tic_fp))
+            t_winset_synth += toc_fp - tic_aut
             # print("Printing states in fixpoint: ")
             # pdb.set_trace()
-            states_in_fp, states_out_fp = check_all_states_in_fp(tracklength, agentlist, w_set, fp, aut)
+
+            # Find all states in fixpoint:
+            if FIND_ALL_FP == True:
+                states_in_fp, states_out_fp = check_all_states_in_fp(tracklength, agentlist, w_set, fp, aut)
+                print(" States in fixpoint: {0}".format(len(states_in_fp)))
+                print(" States outside fixpoint: {0}".format(len(states_out_fp)))
+                print(" ")
             if PRINT_STATES_IN_COMPUTATION:
                 print(" ")
                 print("Printing states in winning set: ")
             # Filter out states that begin in Vj, are in the fixpoint, and satisfy the assumptions
-            start_set = Vij[j]
-
+            # start_set = get_start_set(Vij, j, prev_Wij, ver2st_dict)
+            start_set = get_start_set(Vij, j, [], ver2st_dict)
+            tic_rh_win = time.time()
+            #st()
             states_in_winset, states_out_winset = check_all_states_in_winset_rh(tracklength, agentlist, w_set, fp, aut, merge_setting, state_test_dict, state_system_dict, goal_states, G, ver2st_dict, start_set)
-            # st()
+            toc_rh_win = time.time()
+            print("check_all_states_in_winset_rh: {0}".format(toc_rh_win-tic_rh_win))
+            print("start set cardinality: {0}".format(len(start_set)))
+            print(" ")
+            # print(" States in winset: {0}".format(len(states_in_winset)))
+            # print(" States outside winset: {0}".format(len(states_out_winset)))
             Wij.update({j: states_in_winset})
+            prev_Wij = states_in_winset.copy()
     # st()
-    return Wij
+    return Wij, t_winset_synth
+
+# Start set for receding horizon synthesis:
+def get_start_set(Vij, j, prev_Wij, ver2st_dict):
+    start_set_init = Vij[j]
+    start_set_dict = [ver2st_dict[s] for s in start_set_init]
+    # st()
+    if len(prev_Wij) > 0:
+        start_set = [si for si in prev_Wij if si in start_set_dict]
+    else:
+        start_set = start_set_dict.copy()
+    return start_set
+
 
 ## ToDo:
 # Add function to return viable tester states
@@ -682,8 +730,10 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
     Wij = dict()
     # Go through all the goal states
     # st()
+    t_winset_all_goals = 0
     for key in Vij_dict.keys():
-        Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
+        Wj, t_winset_synth = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
+        t_winset_all_goals += t_winset_synth
         Wij.update({key: Wj})
     # st()
     # Now find all the ks in each Wij
@@ -739,7 +789,7 @@ def get_tester_states_in_winsets(tracklength, merge_setting):
     # in_ws = check_system_states_in_winset(state, ver2st_dict, state_tracker, Wijk)
     #
     # st()
-    return Wij, Vij_dict, state_tracker, ver2st_dict
+    return Wij, Vij_dict, state_tracker, ver2st_dict, t_winset_all_goals
 
 def check_if_state_in_winset(state):
     pass
