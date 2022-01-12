@@ -16,20 +16,22 @@ def compute_winning_set_and_save_time(tracklength):
     Wij = dict()
     # Go through all the goal states
     # st()
+    t_winset_all_goals = 0
     tic = time.time()
     for i, key in enumerate(Vij_dict.keys()):
         tic2 = time.time()
-        Wj = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
+        Wj, t_goal = get_winset_rh(tracklength, merge_setting, Vij_dict[key], state_tracker, ver2st_dict,ego_spec, test_spec, state_dict_test, state_dict_system, G)
         toc2 = time.time()
         delta_t2 = toc2 - tic2
         print('Goal {0} takes {1} s'.format(i,delta_t2))
         Wij.update({key: Wj})
+        t_winset_all_goals += t_goal
 
     # Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(tracklength, merge_setting)
     toc = time.time()
     delta_t = toc - tic
     save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict)
-    return delta_t, delta_t2
+    return delta_t, delta_t2, t_winset_all_goals
 
 def save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict):
     # save objects in dictionary
@@ -49,7 +51,7 @@ def save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict):
         pickle.dump(ws, pckl_file)
 
 def plot_the_times(tracklength, times):
-    plt.style.use('_mpl-gallery')
+    # plt.style.use('_mpl-gallery')
     # st()
     # make data
     x = tracklength
@@ -90,13 +92,19 @@ def save_times(tracklength,times):
 
 if __name__=='__main__':
     print('Checking runtime for winning set synthesis')
-    tracklength = [5,6,7,8,9,10,12,14,16,18,20]
+    Lmax = 10 # Maximum tracklength
+    tracklength = np.linspace(5, Lmax, Lmax-5+1)
+    # tracklength = [5, 20]
+    tracklength = [int(tli) for tli in tracklength]
+    tracklength=[18]
     times = dict()
 
     for l in tracklength:
-        t, t2 = compute_winning_set_and_save_time(l)
+        t, t2, t_all_goals = compute_winning_set_and_save_time(l)
+        print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
         print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
         times.update({l:t})
+        # st()
     print(times)
     save_times(tracklength,times)
     plot_the_times(tracklength, times)
