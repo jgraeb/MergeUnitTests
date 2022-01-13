@@ -988,8 +988,9 @@ def check_all_states_in_winset_rh(tracklength, agentlist, w_set, winning_set, au
 
     # x2 < x1, since x2 is a second tester
     elif num_test_agents ==2:
-        for state_node in start_set:
-            state = ver2st_dict[state_node]
+        # for state_node in start_set:
+        #     state = ver2st_dict[state_node]
+        for state in start_set:
             check_bdd = w_set.check_state_in_fp(aut, winning_set, state)
             if check_bdd:
                 state_node = get_dict_inv(ver2st_dict, state)

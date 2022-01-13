@@ -17,7 +17,7 @@ TILESIZE = 50
 CAR_COLORS = ['blue', 'red']
 LIGHT_COLORS = ['green', 'red', 'yellow']
 ORIENTATIONS = {'n': 270, 'e': 0, 's': 90,'w':180, 'ne':315, 'nw':225, 'se':45, 'sw':135}
-START_CROSSWALK = 2
+START_CROSSWALK = 1
 END_CROSSWALK = 5
 CROSSWALK_V = 2
 CROSSWALK_LOCATIONS = dict()
@@ -167,10 +167,10 @@ def plot_peds(agents):
         draw_pedestrian(agent)
 
 def draw_traffic_light(timestep):
-    light = timestep % 15
-    if light < 10:
+    light = timestep % 30
+    if light < 15:
         color = 'green'
-    elif 10 <= light <= 12:
+    elif 15 <= light <= 22:
         color = 'yellow'
     else:
         color = 'red'

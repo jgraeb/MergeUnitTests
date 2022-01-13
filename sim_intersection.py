@@ -130,10 +130,14 @@ def play_game(intersectionfile):
     # Initial step by testers:
     for pedestrian in gridworld.tester_peds:
         # currently pick a random enabled action
-        action = choice([key for key in gridworld.enabled_actions_pedestrian(pedestrian).keys()])
+        # st()
+        # action = choice([key for key in gridworld.enabled_actions_pedestrian(pedestrian).keys()])
+        action = 'stay'
         gridworld.pedestrian_take_step(pedestrian,action)
     for test_agent in gridworld.tester_cars:
-        action = choice([key for key in gridworld.enabled_actions_car(test_agent).keys()])
+        # st()
+        # action = choice([key for key in gridworld.enabled_actions_car(test_agent).keys()])
+        action = 'stay'
         gridworld.tester_take_step(test_agent,action)
 
     gridworld.print_intersection(gridworld.timestep)
@@ -148,7 +152,7 @@ def play_game(intersectionfile):
         #     append_trace(ego_trace, agent)
         # game_trace.append(deepcopy(gridworld))
         grid_term = gridworld.is_terminal()
-        trace = save_scene(gridworld,trace)
+        # trace = save_scene(gridworld,trace)
         gridworld.print_intersection(gridworld.timestep)
         # st()
         if grid_term:
@@ -160,7 +164,7 @@ def play_game(intersectionfile):
         else:
             k = k + 1
         gridworldnew = deepcopy(gridworld)
-        for k in range(5):
+        for k in range(15):
             # print("Rollout: ", str(k+1))
             tree.do_rollout(gridworldnew)
         gridworldnew = tree.choose(gridworldnew) # Env action
@@ -174,13 +178,16 @@ def play_game(intersectionfile):
             gridworld.tester_take_step(car,actions['car'])
         # for agent in gridworld.env_agents:
         #     append_trace(env_trace, agent)
-        trace = save_scene(gridworld,trace)
+        # trace = save_scene(gridworld,trace)
         gridworld.print_intersection(gridworld.timestep-1)
         grid_term = gridworld.is_terminal()
-    save_trace(filepath,trace)
+    save_trace(filepath,gridworld.trace)
     return #ego_trace, env_trace, game_trace
 
 def which_action(gridworld,gridworldnew):
+    # gridworld.just_print()
+    # gridworldnew.just_print()
+    # st()
     '''Find from chosen gridworld which action was chosen for each agent'''
     actions = []
 
@@ -190,7 +197,7 @@ def which_action(gridworld,gridworldnew):
     car_new = gridworldnew.tester_cars[0]
     ped_new = gridworldnew.tester_peds[0]
 
-    if car_old.y == car_new.y:
+    if car_old.x == car_new.x:
         car_act = 'stay'
     else:
         car_act = 's'
