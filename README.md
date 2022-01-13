@@ -15,7 +15,7 @@ Packages: see **requirements.txt** and TuLiP <br />
 3. Run sim_merge.py for a demonstration of the lane change example <br />
 4. Run sim_intersection.py for a demonstration of the unprotected left turn at intersection example
 5. To produce an animation of the result run animate.py after step 3. or 4.
-6. For the runtime evaluations run runtime_tests.py
+6. For the runtime evaluations run runtime_tests.py with the desired flag for MCTS or winning set synthesis. Detailed instructions are at the top of the file.
 
 ## Examples
 ### Highway Merge
