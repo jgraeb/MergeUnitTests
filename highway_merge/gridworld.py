@@ -31,21 +31,21 @@ def synthesize_guide():
 
     except:
         print('Synthesizing the guide')
-        Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
+        Wij, Vij_dict, state_tracker, ver2st_dict, _ = get_tester_states_in_winsets(TRACKLENGTH, MERGE_SETTING)
         save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict)
     return Wij, Vij_dict, state_tracker, ver2st_dict
 
 Wij, Vij_dict, state_tracker, ver2st_dict = synthesize_guide()
 
 class GridWorld:
-    def __init__(self,lanes,width, initial_scene, ego_agents=None, env_agents=None, turn=None):
+    def __init__(self,lanes,width, initial_scene, sys_agents=None, env_agents=None, turn=None):
         self.lanes = lanes    # Number of one direction lanes stacked
         self.width = width    # number of gridcells in a lane
         self.initial_scene = initial_scene # dictionary of initial agent conditions
-        if ego_agents is not None:
-            self.ego_agents = ego_agents #
+        if sys_agents is not None:
+            self.sys_agents = sys_agents #
         else:
-            self.ego_agents = [] # empty list of ego agents in system
+            self.sys_agents = [] # empty list of ego agents in system
 
         if env_agents is not None:
             self.env_agents = env_agents
@@ -69,7 +69,7 @@ class GridWorld:
         '''Initializing the gridworld'''
         for i,agent in enumerate(self.initial_scene):
             if agent.name[0:3] =='sys':
-                self.ego_agents.append(agent)
+                self.sys_agents.append(agent)
             else:
                 self.env_agents.append(agent)
         self.print_state()
@@ -91,8 +91,8 @@ class GridWorld:
                 st()
             # print("trying to check")
             # st()
-            state = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agent_list[0][1], 'y1': agent_list[0][2], 'x2': agent_list[1][1], 'y2': agent_list[1][2]}
-            origin_state = {'x':self.ego_agents[0].x,'y':self.ego_agents[0].y,'x1':self.env_agents[0].x,'y1':self.env_agents[0].y, 'x2':self.env_agents[1].x, 'y2':self.env_agents[1].y}
+            state = {'x': self.sys_agents[0].x, 'y': self.sys_agents[0].y, 'x1': agent_list[0][1], 'y1': agent_list[0][2], 'x2': agent_list[1][1], 'y2': agent_list[1][2]}
+            origin_state = {'x':self.sys_agents[0].x,'y':self.sys_agents[0].y,'x1':self.env_agents[0].x,'y1':self.env_agents[0].y, 'x2':self.env_agents[1].x, 'y2':self.env_agents[1].y}
             # make sure all agents stay on the track:
             for tester in self.env_agents:
                 if tester.x > TRACKLENGTH:
@@ -119,12 +119,12 @@ class GridWorld:
 
     def map_to_state(self, agentlist):
         # automate this
-        statedict = {'x': self.ego_agents[0].x, 'y': self.ego_agents[0].y, 'x1': agentlist[0][1], 'y1': agentlist[0][2], 'x2': agentlist[1][1], 'y2': agentlist[1][2]}
+        statedict = {'x': self.sys_agents[0].x, 'y': self.sys_agents[0].y, 'x1': agentlist[0][1], 'y1': agentlist[0][2], 'x2': agentlist[1][1], 'y2': agentlist[1][2]}
         return statedict
 
     def ego_take_input(self, action):
         '''Ego agent takes the step'''
-        for agent in self.ego_agents:
+        for agent in self.sys_agents:
             enabled_actions = self.enabled_actions(agent)
             if action in enabled_actions.keys():
                 x,y = enabled_actions[action]
@@ -194,7 +194,7 @@ class GridWorld:
         '''check if the cell is free'''
         x,y = cellxy
         if not agent_list:
-            agents = self.ego_agents + self.env_agents
+            agents = self.sys_agents + self.env_agents
             for agent in agents:
                 if agent.x == x and agent.y == y:
                     return False
@@ -202,7 +202,7 @@ class GridWorld:
             for pos in agent_list: # check all env agents
                 if pos[1] == x and pos[2] == y:
                     return False
-            for agent in self.ego_agents:
+            for agent in self.sys_agents:
                 if agent.x == x and agent.y == y:
                     return False
         return True
@@ -228,7 +228,7 @@ class GridWorld:
 
     def is_terminal(self):
         '''Returns if the state is terminal'''
-        for agent in self.ego_agents:
+        for agent in self.sys_agents:
             if agent.y == agent.goal or agent.x == self.width:
                 self.terminal = True
             else:
@@ -237,7 +237,7 @@ class GridWorld:
 
     def print_state(self):
         '''Print the current state of all agents in the terminal'''
-        agents = self.ego_agents + self.env_agents
+        agents = self.sys_agents + self.env_agents
         for i in range(1,self.lanes+1):
             lanestr = []
             for k in range(1,self.width+1):
@@ -260,7 +260,7 @@ class GridWorld:
         # st()
         '''Find all children nodes from the current node for env action next'''
         # prep the agent data
-        ego_pos = (self.ego_agents[0].x, self.ego_agents[0].y)
+        ego_pos = (self.sys_agents[0].x, self.sys_agents[0].y)
         agent_list_original = [[agent.name, agent.x, agent.y, agent.v, agent.goal] for agent in self.env_agents]
         agent_list_original = sorted(agent_list_original, key = lambda item: item[1]) # sorted by x location
         agent_list_original.reverse()
@@ -283,13 +283,13 @@ class GridWorld:
                     # print('A gridworld child was found')
                     list_of_agentlists_mod.append(agent_list_copy2)
         list_of_agentlists = deepcopy(list_of_agentlists_mod)
-        list_of_gridworlds = [make_gridworld(agentlist,self.ego_agents) for agentlist in list_of_agentlists]
+        list_of_gridworlds = [make_gridworld(agentlist,self.sys_agents) for agentlist in list_of_agentlists]
         # st()
         return list_of_gridworlds
 
     def find_random_child(self):
         debug = False
-        # print('Finding a random child of node'+str(self.ego_agents[0].x)+str(self.ego_agents[0].y)+str(self.env_agents[0].x)+str(self.env_agents[1].x))
+        # print('Finding a random child of node'+str(self.sys_agents[0].x)+str(self.sys_agents[0].y)+str(self.env_agents[0].x)+str(self.env_agents[1].x))
         '''Pick a random child node'''
         if self.terminal:
             return None
@@ -315,7 +315,7 @@ class GridWorld:
         if not self.terminal:
             raise RuntimeError("reward called on nonterminal gridworld")
         else:
-            for agent in self.ego_agents:
+            for agent in self.sys_agents:
                 if agent.y == agent.goal:
                     return agent.x*10
                 elif agent.x == self.width:
@@ -333,7 +333,7 @@ class GridWorld:
             for gi in self.get_children_gridworlds(debug):
                 children.add(gi)
         else: # the environment takes its turn
-            for agent in self.ego_agents:
+            for agent in self.sys_agents:
                 #agent = 'ego'
                 enabled_actions = self.enabled_system_actions(agent)
                 # st()
@@ -341,16 +341,16 @@ class GridWorld:
                 count = 1
                 for ai in enabled_actions:
                     x,y = enabled_actions[ai]
-                    ego_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal)]
-                    gi = GridWorld(self.lanes, self.width, self.initial_scene,ego_agents=ego_agents, env_agents=self.env_agents)
+                    sys_agents = [Agent(name=agent.name, x=x,y=y,v=agent.v, goal=agent.goal, orientation='e')]
+                    gi = GridWorld(self.lanes, self.width, self.initial_scene,sys_agents=sys_agents, env_agents=self.env_agents)
                     count = count+1
                     children.add(gi)
         return children
 
 def make_gridworld(agentdata,egodata):
     '''Create a gridworld from a list of agents'''
-    env_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4]) for agent in agentdata]
-    gi = GridWorld(2, TRACKLENGTH, [],ego_agents=egodata, env_agents=env_agents, turn="ego")
+    env_agents = [Agent(name=agent[0], x=agent[1],y=agent[2],v=agent[3], goal=agent[4], orientation = 'e') for agent in agentdata]
+    gi = GridWorld(2, TRACKLENGTH, [],sys_agents=egodata, env_agents=env_agents, turn="ego")
     return gi
 
 # Debug function:

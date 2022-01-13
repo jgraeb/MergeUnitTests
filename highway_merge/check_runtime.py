@@ -2,9 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+import math
 import pickle
 from ipdb import set_trace as st
+import sys
+# import seaborn as sns
+sys.path.append('..')
 from merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
+from sim_merge import play_game
 
 def compute_winning_set_and_save_time(tracklength):
     merge_setting = "between"
@@ -58,14 +63,10 @@ def plot_the_times(tracklength, times):
     y = []
     for l in tracklength:
         y.append(times[l])
-
     # plot
     fig, ax = plt.subplots()
 
     plt.plot(x, y, linewidth=2.0)
-
-    # ax.set(xlim=(0, 8), xticks=np.arange(1, 8),
-    #        ylim=(0, 8), yticks=np.arange(1, 8))
 
     plt.xlabel('track length')
     plt.ylabel('time [s]')
@@ -89,22 +90,103 @@ def save_times(tracklength,times):
     with open(filepath, 'wb') as pckl_file:
         pickle.dump(save_dict, pckl_file)
 
+def plot_mcts_data(data):
+    # plt.style.use('_mpl-gallery')
+    # st()
+    # make data
+    # st()
+    # sns.set_theme(style="darkgrid")
+
+    x = list(data[10].keys())
+    y = np.array([np.mean(data[10][k]) for k in x])
+    error = np.array([np.std(data[10][k]) for k in x])
+    error_min = np.array([np.min(data[10][k]) for k in x])
+    error_max = np.array([np.max(data[10][k]) for k in x])
+
+
+    # sns.lineplot(x="timepoint", y="signal", hue="region", style="event", data=fmri)
+    # x = np.linspace(0, 30, 30)
+    # y = np.sin(x/6*np.pi)
+    # error = np.random.normal(0.1, 0.02, size=y.shape)
+    # y += np.random.normal(0, 0.1, size=y.shape)
+
+    plt.plot(x, y, color= '#424b7f')
+    plt.fill_between(x, y-(y-error_min), y+(error_max-y), alpha=0.2, edgecolor='#0c8ecb', facecolor='#9bdbe4', linewidth=4, linestyle='dotted')
+    plt.fill_between(x, y-error, y+error, alpha=0.6, edgecolor='#0c8ecb', facecolor='#9bdbe4', linewidth=4, linestyle='dotted')
+
+    # plt.show()
+    #
+    # fig, ax = plt.subplots()
+    #
+    # plt.errorbar(x, y, e, capsize=10)
+    # plt.plot(x, y, linewidth=2.0)
+    new_list = range(math.floor(min(x)), math.ceil(max(x))+1)
+    plt.xticks(new_list)
+    plt.xlabel('Number of Rollouts')
+    plt.ylabel('Terminal Cost')
+    plt.title('Terminal Cost vs. Number of Rollouts', fontsize = 15)
+
+    plt.savefig('ws_mcts_10.png', dpi = 200, bbox_inches='tight')
+    plt.savefig('ws_mcts_10.pdf', bbox_inches='tight')
+    plt.show()
+
+def save_mcts_data(tracklengths, rollouts, data):
+    save_dict = dict()
+    save_dict.update({'tracklengths': tracklengths})
+    save_dict.update({'rollouts': rollouts})
+    save_dict.update({'data': data})
+    # save dict in pkl file
+    output_dir = os.getcwd()+'/saved_data/'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    filename = 'mcts_comparison_file.p'
+    filepath = output_dir + filename
+    print('Saving data in pkl file')
+    with open(filepath, 'wb') as pckl_file:
+        pickle.dump(save_dict, pckl_file)
 
 if __name__=='__main__':
-    print('Checking runtime for winning set synthesis')
-    Lmax = 10 # Maximum tracklength
-    tracklength = np.linspace(5, Lmax, Lmax-5+1)
-    # tracklength = [5, 20]
-    tracklength = [int(tli) for tli in tracklength]
-    tracklength=[18]
-    times = dict()
+    check_MCTS = True
+    check_WS = False
+    if check_WS:
+        print('Checking runtime for winning set synthesis')
+        Lmax = 15 # Maximum tracklength
+        tracklength = np.linspace(5, Lmax, Lmax-5+1)
+        # tracklength = [5, 20]
+        tracklength = [int(tli) for tli in tracklength]
+        # tracklength=[18]
+        times = dict()
 
-    for l in tracklength:
-        t, t2, t_all_goals = compute_winning_set_and_save_time(l)
-        print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
-        print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
-        times.update({l:t})
+        for l in tracklength:
+            t, t2, t_all_goals = compute_winning_set_and_save_time(l)
+            print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
+            print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
+            times.update({l:t})
+            # st()
+        print(times)
+        save_times(tracklength,times)
+        plot_the_times(tracklength, times)
+
+    if check_MCTS:
+        Lmax = 15 # Maximum tracklength
+        # tracklengths = np.linspace(5, Lmax, Lmax-5+1)
+        rollouts_to_run = [1,2,3,4,5]#,6,7]#,8,9,10]#[1, 5,25]#,30,35,40,50,60,70,80,90,100]
+        tracklengths = [10]
+        data = dict()
+        for l in tracklengths:
+            cost_for_rollouts = dict()
+            for num_rollouts in rollouts_to_run:
+                cost = []
+                for i in range(0,50):
+                    ego_trace, env_trace, game_trace = play_game(num_rollouts, l)
+                    # st()
+                    ego_cost = ego_trace['x'][-1]
+                    print(ego_cost)
+                    cost.append(ego_cost)
+                cost_for_rollouts.update({num_rollouts: cost})
+            print(cost_for_rollouts)
+            data.update({l: cost_for_rollouts})
+            print(data)
         # st()
-    print(times)
-    save_times(tracklength,times)
-    plot_the_times(tracklength, times)
+        plot_mcts_data(data)
+        save_mcts_data(tracklengths, rollouts_to_run, data)

@@ -11,6 +11,7 @@ from components.scene import Scene
 import _pickle as pickle
 import os
 from ipdb import set_trace as st
+MERGE = True
 
 
 def save_trace(filename,trace): # save the trace in pickle file for animation
@@ -19,20 +20,33 @@ def save_trace(filename,trace): # save the trace in pickle file for animation
         pickle.dump(trace, pckl_file)
 
 def save_scene(gridworld,trace): # save each scene in trace
-    print('Saving scene {}'.format(gridworld.timestep))
-    sys_snapshot = []
-    tester_snapshot = []
-    ped_snapshot = []
-    for agent in gridworld.sys_agents:
-        sys_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
-    for agent in gridworld.tester_cars:
-        tester_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
-    for ped in gridworld.tester_peds:
-        ped_snapshot.append((ped.name, ped.x,ped.y, ped.cwloc))
-    current_scene = Scene(gridworld.timestep, gridworld.map, sys_snapshot, tester_snapshot, ped_snapshot)
-    trace.append(current_scene)
-    gridworld.timestep += 1
-    gridworld.trace = trace
+    if MERGE:
+        print('Saving scene {}'.format(gridworld.timestep))
+        ego_snapshot = []
+        env_snapshot = []
+        for agent in gridworld.sys_agents:
+            ego_snapshot.append((agent.name,agent.x,agent.y))
+        for agent in gridworld.env_agents:
+            env_snapshot.append((agent.name,agent.x,agent.y))
+        current_scene = Scene(gridworld.timestep, gridworld.map, ego_snapshot, env_snapshot)
+        trace.append(current_scene)
+        gridworld.timestep += 1
+        gridworld.trace = trace
+    else:
+        print('Saving scene {}'.format(gridworld.timestep))
+        sys_snapshot = []
+        tester_snapshot = []
+        ped_snapshot = []
+        for agent in gridworld.sys_agents:
+            sys_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
+        for agent in gridworld.tester_cars:
+            tester_snapshot.append((agent.name,agent.x,agent.y, agent.orientation))
+        for ped in gridworld.tester_peds:
+            ped_snapshot.append((ped.name, ped.x,ped.y, ped.cwloc))
+        current_scene = Scene(gridworld.timestep, gridworld.map, sys_snapshot, tester_snapshot, ped_snapshot)
+        trace.append(current_scene)
+        gridworld.timestep += 1
+        gridworld.trace = trace
     return trace
 
 def save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict):
@@ -54,8 +68,13 @@ def save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict):
 
 def load_ws():
     ws_file = os.getcwd()+'/highway_merge/saved_filters/ws_out_files.p'
-    with open(ws_file, 'rb') as pckl_file:
-        ws = pickle.load(pckl_file)
+    try:
+        with open(ws_file, 'rb') as pckl_file:
+            ws = pickle.load(pckl_file)
+    except:
+        ws_file = os.getcwd()+'/saved_filters/ws_out_files.p'
+        with open(ws_file, 'rb') as pckl_file:
+            ws = pickle.load(pckl_file)
     Wij = ws['Wij']
     Vij_dict = ws['Vij_dict']
     state_tracker = ws['state_tracker']

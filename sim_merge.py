@@ -24,20 +24,22 @@ from highway_merge.test_parameters import TRACKLENGTH, MERGE_SETTING
 def new_init_scene():
     '''Setting up the initial scene as list of agents'''
     agents = []
-    ego_tuple = Agent(name ="system", x = 1, y = 1, v=1, goal = 2)
+    ego_tuple = Agent(name ="system", x = 1, y = 1, v=1, goal = 2, orientation = 'e')
     agents.append(ego_tuple)
-    tester_tuple = Agent(name ="tester_0", x = 2, y = 2, v=1, goal = 2)
+    tester_tuple = Agent(name ="tester_0", x = 2, y = 2, v=1, goal = 2, orientation = 'e')
     agents.append(tester_tuple)
-    tester_tuple_2 = Agent(name ="tester_1", x = 1, y = 2, v=1, goal = 2)
+    tester_tuple_2 = Agent(name ="tester_1", x = 1, y = 2, v=1, goal = 2, orientation = 'e')
     agents.append(tester_tuple_2)
     # tester_tuple2 = Agent(name ="ag_env_1", x = 1, y = 2, v=1, goal = 2)
     # agents.append(tester_tuple2)
     return agents
 
-def new_World():
+def new_World(tracklength):
+    if not tracklength:
+        tracklength = TRACKLENGTH
     '''Create the gridworld from the initial scene'''
     init_scene = new_init_scene()
-    return GridWorld(2, TRACKLENGTH, init_scene)
+    return GridWorld(2, tracklength, init_scene)
 
 def run_random_sim(maxstep):
     '''Run a random simulation / for debugging - not used in MCTS!!!'''
@@ -63,7 +65,7 @@ def run_random_sim(maxstep):
         # save the scene
         gridworld.save_scene()
         # check if we are done
-        for agent in gridworld.ego_agents:
+        for agent in gridworld.sys_agents:
             if gridworld.check_terminal(agent):
                 print('Goal reached')
                 # save the trace
@@ -81,7 +83,7 @@ def append_trace(trace_dict, agent):
     trace_dict["v"].append(agent.v)
 
 
-def play_game():
+def play_game(num_rollouts, tracklength = None):
     '''Play the game using MCTS to find the strategy'''
     trace=[]
     tree = MCTS()
@@ -91,7 +93,7 @@ def play_game():
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
     filepath = output_dir + filename
-    gridworld = new_World()
+    gridworld = new_World(tracklength)
     gridworld.setup_world()
     trace = save_scene(gridworld,trace) # save initial scene
     acts = ['mergeL','stay','move', 'mergeR']
@@ -99,7 +101,7 @@ def play_game():
     env_trace = {"x": [], "y": [], "v": []}
     for agent in gridworld.env_agents:
         append_trace(env_trace, agent)
-    for agent in gridworld.ego_agents:
+    for agent in gridworld.sys_agents:
         append_trace(ego_trace, agent)
 
     game_trace = [] # Same as ego_trace and env_trace condensed into one step with env going first
@@ -118,7 +120,7 @@ def play_game():
     gridworld.print_state()
     while True:
         gridworld.ego_take_input('mergeR')  # Ego action
-        for agent in gridworld.ego_agents:
+        for agent in gridworld.sys_agents:
             append_trace(ego_trace, agent)
         game_trace.append(deepcopy(gridworld))
         grid_term = gridworld.is_terminal()
@@ -127,7 +129,7 @@ def play_game():
         if grid_term:
             if k==0:
                 print("Poor initial choices; no MCTS rollouts yet")
-            for agent in gridworld.ego_agents:
+            for agent in gridworld.sys_agents:
                 if gridworld.width == agent.x and agent.y == 1:
                     print('Did not merge; end of road')
             else:
@@ -136,8 +138,8 @@ def play_game():
         else:
             k = k+1
         gridworldnew = deepcopy(gridworld)
-        for k in range(50):
-            #print("Rollout: ", str(k+1))
+        for k in range(num_rollouts):
+            print("Rollout: ", str(k+1))
             tree.do_rollout(gridworldnew)
         gridworldnew = tree.choose(gridworldnew) # Env action
         # find which actions were chosen and take them
@@ -178,12 +180,13 @@ def append_trace(trace_dict, agent):
 
 if __name__ == '__main__':
     #run_random_sim(10)
+    num_rollouts = 50
     output_dir = os.getcwd()+'/highway_merge/saved_traces/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
     filepath = output_dir + filename
-    ego_trace, env_trace, game_trace = play_game()
+    ego_trace, env_trace, game_trace = play_game(num_rollouts)
     print("Ego trajectory")
     print(ego_trace)
     print("")
