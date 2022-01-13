@@ -17,7 +17,7 @@ import pickle
 from ipdb import set_trace as st
 import sys
 sys.path.append('..')
-from merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
+from highway_merge.merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
 from sim_merge import play_game
 from highway_merge.test_parameters import TRACKLENGTH
 from highway_merge.check_runtime import run_mcts_convergence_check

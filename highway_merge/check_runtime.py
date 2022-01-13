@@ -8,9 +8,9 @@ from ipdb import set_trace as st
 import sys
 # import seaborn as sns
 sys.path.append('..')
-from merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
+from highway_merge.merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
 from sim_merge import play_game
-from test_parameters import TRACKLENGTH
+from highway_merge.test_parameters import TRACKLENGTH
 
 def compute_winning_set_and_save_time(tracklength):
     merge_setting = "between"
@@ -43,7 +43,7 @@ def save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict):
     ws.update({'state_tracker': state_tracker})
     ws.update({'ver2st_dict': ver2st_dict})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/saved_wsets/'
+    output_dir = os.getcwd()+'/highway_merge/saved_wsets/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'ws_out_file_'+str(tracklength)+'.p'
@@ -69,8 +69,8 @@ def plot_the_times(tracklength, times):
     plt.ylabel('time [s]')
     plt.title('Filter Synthesis Runtime', fontsize = 15)
 
-    plt.savefig('ws_runtime.png', dpi = 200, bbox_inches='tight')
-    plt.savefig('ws_runtime.pdf', bbox_inches='tight')
+    plt.savefig('/highway_merge/runtime/ws_runtime.png', dpi = 200, bbox_inches='tight')
+    plt.savefig('/highway_merge/runtime/ws_runtime.pdf', bbox_inches='tight')
 
 
     plt.show()
@@ -80,10 +80,10 @@ def save_times(tracklength,times):
     save_dict.update({'tracklength': tracklength})
     save_dict.update({'times': times})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/saved_data/'
+    output_dir = os.getcwd()+'/highway_merge/runtime/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    filename = 'times_file.p'
+    filename = 'ws_synthsis_times_file.p'
     filepath = output_dir + filename
     print('Saving data in pkl file')
     with open(filepath, 'wb') as pckl_file:
@@ -107,9 +107,9 @@ def plot_mcts_data(data):
     plt.ylabel('Terminal Cost')
     plt.title('Rollouts to Find Test Policy for Track Length = '+str(TRACKLENGTH), fontsize = 15)
     # save the plots
-    plt.savefig('mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
-    plt.savefig('mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
-    plt.savefig('mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
+    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
+    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
+    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
     plt.show()
 
 def save_mcts_data(rollouts, data):
@@ -118,7 +118,7 @@ def save_mcts_data(rollouts, data):
     save_dict.update({'rollouts': rollouts})
     save_dict.update({'data': data})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/saved_data/'
+    output_dir = os.getcwd()+'/highway_merge/runtime/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'mcts_comparison_file_'+str(TRACKLENGTH)+'.p'
