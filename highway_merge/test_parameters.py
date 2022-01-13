@@ -2,5 +2,5 @@
 Global parameters for test generation - merge example
 '''
 
-TRACKLENGTH = 5
+TRACKLENGTH = 10
 MERGE_SETTING = "between"

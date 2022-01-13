@@ -43,7 +43,7 @@ def save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict):
     ws.update({'state_tracker': state_tracker})
     ws.update({'ver2st_dict': ver2st_dict})
     # save dict in pkl file
-    output_dir = os.getcwd()+'/highway_merge/saved_wsets/'
+    output_dir = os.getcwd()+'/highway_merge/saved_filters/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     filename = 'ws_out_file_'+str(tracklength)+'.p'
@@ -53,8 +53,6 @@ def save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict):
         pickle.dump(ws, pckl_file)
 
 def plot_the_times(tracklength, times):
-    # plt.style.use('_mpl-gallery')
-    # st()
     # make data
     x = tracklength
     y = []
@@ -62,16 +60,15 @@ def plot_the_times(tracklength, times):
         y.append(times[l])
     # plot
     fig, ax = plt.subplots()
-
     plt.plot(x, y, linewidth=2.0)
+    plt.xlabel('Track Length')
+    plt.ylabel('Time [s]')
+    plt.title('Test Policy Filter Synthesis Runtime', fontsize = 15)
 
-    plt.xlabel('track length')
-    plt.ylabel('time [s]')
-    plt.title('Filter Synthesis Runtime', fontsize = 15)
+    output_dir = os.getcwd()+'/highway_merge/runtime/'
 
-    plt.savefig('/highway_merge/runtime/ws_runtime.png', dpi = 200, bbox_inches='tight')
-    plt.savefig('/highway_merge/runtime/ws_runtime.pdf', bbox_inches='tight')
-
+    plt.savefig(output_dir + 'ws_runtime.png', dpi = 200, bbox_inches='tight')
+    plt.savefig(output_dir + 'ws_runtime.pdf', bbox_inches='tight')
 
     plt.show()
 
@@ -107,9 +104,11 @@ def plot_mcts_data(data):
     plt.ylabel('Terminal Cost')
     plt.title('Rollouts to Find Test Policy for Track Length = '+str(TRACKLENGTH), fontsize = 15)
     # save the plots
-    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
-    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
-    plt.savefig('/highway_merge/runtime/mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
+    output_dir = os.getcwd()+'/highway_merge/runtime/'
+
+    plt.savefig(output_dir + 'mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
+    plt.savefig(output_dir + 'mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
+    # plt.savefig(output_dir + 'mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
     plt.show()
 
 def save_mcts_data(rollouts, data):
@@ -152,8 +151,8 @@ def run_winning_set_filter_synthesis_runtime_check(Lmax):
         times = dict()
         for l in tracklength:
             t, t2, t_all_goals = compute_winning_set_and_save_time(l)
-            print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
-            print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
+            # print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
+            # print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
             times.update({l:t})
 
         print(times)

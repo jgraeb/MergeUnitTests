@@ -284,9 +284,8 @@ class GridWorld:
             raise RuntimeError("reward called on nonterminal gridworld")
         else:
             reward = -self.timestep
-            # reward = self.timestep # TODO: add time left until red light here!
             # time_to_red = 15 - ((self.timestep-10) % 15)
-            # reward = 1/time_to_red
+            # reward = -time_to_red
             # print('Returned REWARD')
             return reward
 
