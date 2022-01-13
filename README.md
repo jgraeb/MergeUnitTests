@@ -6,7 +6,7 @@ Josefine B. Graebener, Apurva Badithela <br />
 Framework to merge unit tests for autonomous vehicles using a receding horizon winning set filter synthesized from the merged test specification and Monte Carlo Tree Search.
 
 This repository reproduces the results in the paper submitted to NFM 2022
-This branch contains code for reproducing the results in "Towards Higher Test Coverage: Merging Unit Tests for Autonomous Systems" by Josefine B. Graebener, Apurva Badithela, and Richard M. Murray submitted to NFM 2022.
+This branch contains code for reproducing the results in "Towards Better Test Coverage: Merging Unit Tests for Autonomous Systems" by Josefine B. Graebener, Apurva Badithela, and Richard M. Murray submitted to NFM 2022.
 
 ## Requirements
 Python 3.x<br />
