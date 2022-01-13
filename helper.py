@@ -11,6 +11,7 @@ from components.scene import Scene
 import _pickle as pickle
 import os
 from ipdb import set_trace as st
+
 MERGE = True
 
 
@@ -60,14 +61,14 @@ def save_ws_comp_result(Wij, Vij_dict, state_tracker, ver2st_dict):
     output_dir = os.getcwd()+'/highway_merge/saved_filters/'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    filename = 'ws_out_files.p'
+    filename = 'ws_out_files_'+str(TRACKLENGTH)+'.p'
     filepath = output_dir + filename
     print('Saving winning set in pkl file')
     with open(filepath, 'wb') as pckl_file:
         pickle.dump(ws, pckl_file)
 
 def load_ws():
-    ws_file = os.getcwd()+'/highway_merge/saved_filters/ws_out_files.p'
+    ws_file = os.getcwd()+'/highway_merge/saved_filters/ws_out_files_'+str(TRACKLENGTH)+'.p'
     try:
         with open(ws_file, 'rb') as pckl_file:
             ws = pickle.load(pckl_file)

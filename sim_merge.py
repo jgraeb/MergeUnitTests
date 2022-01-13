@@ -34,12 +34,10 @@ def new_init_scene():
     # agents.append(tester_tuple2)
     return agents
 
-def new_World(tracklength):
-    if not tracklength:
-        tracklength = TRACKLENGTH
+def new_World():
     '''Create the gridworld from the initial scene'''
     init_scene = new_init_scene()
-    return GridWorld(2, tracklength, init_scene)
+    return GridWorld(2, TRACKLENGTH, init_scene)
 
 def run_random_sim(maxstep):
     '''Run a random simulation / for debugging - not used in MCTS!!!'''
@@ -83,7 +81,7 @@ def append_trace(trace_dict, agent):
     trace_dict["v"].append(agent.v)
 
 
-def play_game(num_rollouts, tracklength = None):
+def play_game(num_rollouts):
     '''Play the game using MCTS to find the strategy'''
     trace=[]
     tree = MCTS()
@@ -93,7 +91,7 @@ def play_game(num_rollouts, tracklength = None):
         os.makedirs(output_dir)
     filename = 'sim_trace.p'
     filepath = output_dir + filename
-    gridworld = new_World(tracklength)
+    gridworld = new_World()
     gridworld.setup_world()
     trace = save_scene(gridworld,trace) # save initial scene
     acts = ['mergeL','stay','move', 'mergeR']
