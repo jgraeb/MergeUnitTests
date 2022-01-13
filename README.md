@@ -20,4 +20,4 @@ Packages: see **requirements.txt** and TuLiP <br />
 ### Highway Merge
 ![](animations/merge_track10.gif)
 ### Unprotected Left Turn
-![](animations/intersection_example.gif)
+![](animations/intersection_animation.gif)
