@@ -167,10 +167,10 @@ def plot_peds(agents):
         draw_pedestrian(agent)
 
 def draw_traffic_light(timestep):
-    light = timestep % 15
-    if light < 10:
+    light = timestep % 30
+    if light < 15:
         color = 'green'
-    elif 10 <= light <= 12:
+    elif 15 <= light <= 22:
         color = 'yellow'
     else:
         color = 'red'

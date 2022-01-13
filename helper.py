@@ -13,7 +13,7 @@ import os
 from ipdb import set_trace as st
 from highway_merge.test_parameters import TRACKLENGTH
 
-MERGE = True
+MERGE = False
 
 
 def save_trace(filename,trace): # save the trace in pickle file for animation

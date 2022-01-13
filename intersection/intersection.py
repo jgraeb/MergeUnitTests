@@ -22,7 +22,7 @@ from intersection.rh_synthesis import synthesize_intersection_filter
 from intersection.tools import create_intersection_from_file
 # from intersection.test_parameters import INTERSECTIONFILE
 
-MAX_TIMESTEP = 50
+MAX_TIMESTEP = 100
 PED_IN_WAIT = [1, 2, 3, 4, 5]
 CAR_IN_WAIT = [(0,3), (1,3), (2,3), (3,3)]
 
@@ -283,9 +283,9 @@ class GridWorld:
         if not self.terminal:
             raise RuntimeError("reward called on nonterminal gridworld")
         else:
-            reward = -self.timestep
-            # time_to_red = 15 - ((self.timestep-10) % 15)
-            # reward = -time_to_red
+            # reward = -self.timestep
+            time_to_red = (-((self.timestep-10) % 30) - 8)
+            reward = -time_to_red
             # print('Returned REWARD')
             return reward
 
@@ -536,11 +536,10 @@ class GridWorld:
 
     def set_traffic_light_color(self):
         # LIGHTCYCLE = []
-        # 15 set as light cycle
-        light = self.timestep % 15
-        if  light < 10:
+        light = self.timestep % 30
+        if  light < 15:
             light = 'g'
-        elif 10 <= light <= 12:
+        elif 15 <= light <= 22:
             light = 'y'
         else:
             light = 'r'
