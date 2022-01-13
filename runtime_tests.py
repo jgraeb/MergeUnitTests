@@ -19,7 +19,7 @@ import sys
 sys.path.append('..')
 from merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
 from sim_merge import play_game
-from test_parameters import TRACKLENGTH
+from highway_merge.test_parameters import TRACKLENGTH
 from highway_merge.check_runtime import run_mcts_convergence_check
 
 CHECK_MCTS = True

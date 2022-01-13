@@ -11,6 +11,7 @@ from components.scene import Scene
 import _pickle as pickle
 import os
 from ipdb import set_trace as st
+from highway_merge.test_parameters import TRACKLENGTH
 
 MERGE = True
 
@@ -73,7 +74,7 @@ def load_ws():
         with open(ws_file, 'rb') as pckl_file:
             ws = pickle.load(pckl_file)
     except:
-        ws_file = os.getcwd()+'/saved_filters/ws_out_files.p'
+        ws_file = os.getcwd()+'/saved_filters/ws_out_files_'+str(TRACKLENGTH)+'.p'
         with open(ws_file, 'rb') as pckl_file:
             ws = pickle.load(pckl_file)
     Wij = ws['Wij']

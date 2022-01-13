@@ -16,12 +16,9 @@ def compute_winning_set_and_save_time(tracklength):
     merge_setting = "between"
     print('Synthesizing for {}'.format(tracklength))
 
-    # compute here
-
     ego_spec, test_spec, Vij_dict, state_tracker, ver2st_dict, G, state_dict_test, state_dict_system = specs_car_rh(tracklength, merge_setting)
     Wij = dict()
-    # Go through all the goal states
-    # st()
+
     t_winset_all_goals = 0
     tic = time.time()
     for i, key in enumerate(Vij_dict.keys()):
@@ -33,7 +30,6 @@ def compute_winning_set_and_save_time(tracklength):
         Wij.update({key: Wj})
         t_winset_all_goals += t_goal
 
-    # Wij, Vij_dict, state_tracker, ver2st_dict = get_tester_states_in_winsets(tracklength, merge_setting)
     toc = time.time()
     delta_t = toc - tic
     save_winning_set(tracklength, Wij, Vij_dict, state_tracker, ver2st_dict)
@@ -71,10 +67,12 @@ def plot_the_times(tracklength, times):
 
     plt.xlabel('track length')
     plt.ylabel('time [s]')
-    plt.title('Highway Merge: Runtime vs. Tracklength', fontsize = 15)
+    plt.title('Filter Synthesis Runtime', fontsize = 15)
 
     plt.savefig('ws_runtime.png', dpi = 200, bbox_inches='tight')
     plt.savefig('ws_runtime.pdf', bbox_inches='tight')
+
+
     plt.show()
 
 def save_times(tracklength,times):
@@ -107,11 +105,11 @@ def plot_mcts_data(data):
     plt.xticks(new_list)
     plt.xlabel('Number of Rollouts')
     plt.ylabel('Terminal Cost')
-    plt.title('Rollouts to Find Test Policy for Tracklength = '+str(TRACKLENGTH), fontsize = 15)
+    plt.title('Rollouts to Find Test Policy for Track Length = '+str(TRACKLENGTH), fontsize = 15)
     # save the plots
-    plt.savefig('ws_mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
-    plt.savefig('ws_mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
-    plt.savefig('ws_mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
+    plt.savefig('mcts_'+str(TRACKLENGTH)+'.png', dpi = 200, bbox_inches='tight')
+    plt.savefig('mcts_'+str(TRACKLENGTH)+'.pdf', bbox_inches='tight')
+    plt.savefig('mcts_'+str(TRACKLENGTH)+'.svg', bbox_inches='tight')
     plt.show()
 
 def save_mcts_data(rollouts, data):
@@ -169,9 +167,7 @@ if __name__=='__main__':
         print('Checking runtime for winning set synthesis')
         Lmax = 15 # Maximum tracklength
         tracklength = np.linspace(5, Lmax, Lmax-5+1)
-        # tracklength = [5, 20]
         tracklength = [int(tli) for tli in tracklength]
-        # tracklength=[18]
         times = dict()
 
         for l in tracklength:
@@ -179,31 +175,27 @@ if __name__=='__main__':
             print("Synthesizing winning set for all goals takes {0}".format(t_all_goals))
             print('Tracklength: {0} took {1} s total and {2} for one single goal'.format(l,t,t2))
             times.update({l:t})
-            # st()
+
         print(times)
         save_times(tracklength,times)
         plot_the_times(tracklength, times)
 
     if check_MCTS:
         Lmax = 15 # Maximum tracklength
-        # tracklengths = np.linspace(5, Lmax, Lmax-5+1)
-        rollouts_to_run = [1,2,3,4,5]#,6,7]#,8,9,10]#[1, 5,25]#,30,35,40,50,60,70,80,90,100]
-        tracklengths = [15]
+        rollouts_to_run = [1,2,3,4,5]
         data = dict()
-        for l in tracklengths:
-            cost_for_rollouts = dict()
-            for num_rollouts in rollouts_to_run:
-                cost = []
-                for i in range(0,50):
-                    ego_trace, env_trace, game_trace = play_game(num_rollouts)
-                    # st()
-                    ego_cost = ego_trace['x'][-1]
-                    print(ego_cost)
-                    cost.append(ego_cost)
-                cost_for_rollouts.update({num_rollouts: cost})
-            print(cost_for_rollouts)
-            data.update({l: cost_for_rollouts})
-            print(data)
-        # st()
+        cost_for_rollouts = dict()
+        for num_rollouts in rollouts_to_run:
+            cost = []
+            for i in range(0,50):
+                ego_trace, env_trace, game_trace = play_game(num_rollouts)
+                # st()
+                ego_cost = ego_trace['x'][-1]
+                print(ego_cost)
+                cost.append(ego_cost)
+            cost_for_rollouts.update({num_rollouts: cost})
+        data.update({TRACKLENGTH: cost_for_rollouts})
+        print(data)
+
         plot_mcts_data(data)
-        save_mcts_data(tracklengths, rollouts_to_run, data)
+        save_mcts_data(rollouts_to_run, data)
