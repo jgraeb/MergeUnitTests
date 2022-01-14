@@ -447,10 +447,15 @@ def specs_car_merge(tracklength):
 
     # T2 shouldn't reach the last cell unless T1 merges:
     tester_safe |= {'(y=1 -> X !(x2=2))'}
-    tester_prog |= {'(x1=3 && x2=1 && y1=2 && y2=2)'}
+    # tester_prog |= {'(x1=3 && x2=1 && y1=2 && y2=2)'}
     # tester_prog |= {'(x=2 && y=2)'}
     # tester_prog |= {}
     # <>[](!(x=2 && y=2)) \/ []<>(x1=3 && x2=1 && y1=2 && y2=2)
+    # merge_spec = '((x=1) && (x1=3) && (x2=1) && (y=2 && y1=2 && y2=2))'
+    # merge_spec = '((x=9) && (x1=10) && (x2=8) && (y=2 && y1=2 && y2=2))'
+    for ki in range(1,tracklength-1):
+        merge_spec = merge_spec + ' || ((x='+str(ki+1)+') && (x1='+str(ki+2)+') && (x2='+str(ki)+') && (y=2 && y1=2 && y2=2))'
+    tester_prog |= {merge_spec}
 
     # No collision with other vehicles:
     for yi in range(1,3):
@@ -731,6 +736,149 @@ def specs_car_merge_back(tracklength):
     #             other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
     #             sys_safe |= {'((y=2 && y1=2 && y2=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2 && y1=2 && y2=2))'}
     #             tester_safe |= {'((y=2 && y1=2 && y2=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2 && y1=2 && y2=2))'}
+
+    # Synthesize specs
+    ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)
+    test_spec = Spec(tester_vars, tester_init, tester_safe, tester_prog)
+    return ego_spec, test_spec
+
+def specs_car_merge_for_goal(tracklength, goal_pos):
+    sys_vars = {}
+    sys_vars['x'] = (1, tracklength) # 0: system is much behind the second tester car, tracklength+1: system is much further than the first tester car
+    sys_vars['y'] = (1,2)
+    sys_init = {'x='+str(1), 'y='+str(1)}
+    sys_prog = set()
+    sys_prog |= {'y=2'} # Eventually, the system should merge
+    sys_safe = set()
+
+    # Dynamics for merging into adjacent track:
+    for ii in range(1,tracklength):
+        sys_safe |= {'(x='+str(ii)+' && y=1) -> X((x='+str(ii+1)+' && y=1)||(x='+str(ii)+' && y=1)|| (x='+str(ii+1)+' && y=2))'}
+        sys_safe |= {'(x='+str(ii)+' && y=2) -> X((x='+str(ii+1)+' && y=2)||(x='+str(ii)+' && y=2)|| (x='+str(ii+1)+' && y=1))'}
+    # sys_safe |= {'x=0 -> X(x=0 && x=1)'}
+    # sys_safe |= {'(x='+str(tracklength-1)+' && y=1) -> X((x='+str(tracklength-1)+' && y=1)|| (x='+str(tracklength)+' && y=1))'}
+    # sys_safe |= {'(x='+str(tracklength-1)+' && y=2) -> X((x='+str(tracklength-1)+' && y=2) || (x='+str(tracklength)+' && y=2))'}
+    sys_safe |= {'(x='+str(tracklength)+' && y=2 )-> X(x='+str(tracklength)+' && y=2)'}
+    sys_safe |= {'(x='+str(tracklength)+' && y=1 )-> X(x='+str(tracklength)+' && y=1)'}
+
+    # If there is no env car in the kitty-corner lane, the car merges:
+    for xi in range(1, tracklength-1):
+        merge_if_possible = '(!(y1=2 && x1 = '+str(xi+1) +') && !(y2=2 && x2 = '+str(xi+1) +')) -> X(y=2 && x='+str(xi+1)+')'
+        sys_safe |= {merge_if_possible}
+
+    # Last cell merge:
+    merge_if_possible = '(!(y1=2 && x1 = '+str(tracklength) +')) -> X(y=2 && x='+str(tracklength)+')'
+    sys_safe |= {merge_if_possible}
+
+    # Don't start until x1 is in front:
+    sys_safe |= {'(x1=2 && y1=2) -> X(x=1 && y=1)'}
+
+    # S - -
+    # T T -
+    # Never reach the end state:
+    # sys_safe |= {'!(x=3 && y=1)'}
+
+    # testers
+    tester_vars = {}
+    tester_vars['x1'] = (2,tracklength)
+    tester_vars['y1'] = (1,2)
+    tester_vars['x2'] = (1,tracklength-1)
+    tester_vars['y2'] = (1,2)
+    tester_init = {'x1='+str(2), 'y1='+str(2), 'x2='+str(1), 'y2='+str(2)}
+    tester_prog = set()
+    tester_safe = set()
+
+    # - - -
+    # T S T
+    #
+    #   1 2 3
+    # 1 - - -
+    # 2 - - -
+    #
+    # 1)
+    # - - -
+    # T S T
+
+    # 2)
+    # S - -
+    # T _ T
+
+    # 3)
+    # S - -
+    # T T _
+
+    # [](x=2 /\ y=2 -> x1=3 /\ y=2 /\ x2=1  /\ y2 =2)
+    # merge_spec = '((x=2 && y=2 && x1=3 && x2=1 && y1=2 && y2=2))'
+    merge_spec = '((x=2 && y=2) -> (x1=3 && x2=1 && y1=2 && y2=2))'
+    for ki in range(2,tracklength-1):
+        merge_spec = merge_spec + ' || ((x='+str(ki+1)+' && y=2) -> ((x1='+str(ki+2)+' && (x2='+str(ki)+') && y1=2 && y2=2)))'
+    tester_safe |= {merge_spec}
+
+    # T2 shouldn't reach the last cell unless T1 merges:
+    tester_safe |= {'(y=1 -> X !(x2=2))'}
+    # tester_prog |= {'(x1=3 && x2=1 && y1=2 && y2=2)'}
+    # tester_prog |= {'(x=2 && y=2)'}
+    # tester_prog |= {}
+    # <>[](!(x=2 && y=2)) \/ []<>(x1=3 && x2=1 && y1=2 && y2=2)
+    # merge_spec = '((x=1) && (x1=3) && (x2=1) && (y=2 && y1=2 && y2=2))'
+
+    merge_spec = '((x='+str(goal_pos)+') && (x1='+str(goal_pos+1)+') && (x2='+str(goal_pos-1)+') && (y=2 && y1=2 && y2=2))'
+    tester_prog |= {merge_spec}
+
+    # No collision with other vehicles:
+    for yi in range(1,3):
+        for xi in range(1, tracklength+1):
+            if xi!= tracklength:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+') -> X(!(x2 ='+str(xi)+'&& y2 = '+str(yi)+'))'}
+                sys_safe |= {'(x2 ='+str(xi)+' && y2 = '+str(yi)+') -> X(!(x='+str(xi)+' && y= '+str(yi)+ '))'}
+
+            if xi != 1:
+                tester_safe |= {'!(x1='+str(xi)+' && x2 ='+str(xi)+' && y1= '+str(yi)+ ' && y2 = '+str(yi)+')'}
+                # tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+ ') -> X(!(x1 ='+str(xi)+ ' && y1 = '+str(yi)+'))'}
+                # sys_safe |= {'(x='+str(xi)+' && y= '+str(yi)+ ') -> X(!(x1 ='+str(xi)+ ' && y1 = '+str(yi)+'))'}
+                tester_safe |= {'(x='+str(xi)+' && y= '+str(yi)+') -> X(!(x1 ='+str(xi)+'&& y1 = '+str(yi)+'))'}
+                sys_safe |= {'(x1 ='+str(xi)+' && y1 = '+str(yi)+') -> X(!(x='+str(xi)+' && y = '+str(yi)+ '))'}
+
+    sys_safe |= {'(x2 ='+str(1)+'&& y2 = 2) -> X(!(x='+str(1)+' && y = 2))'}
+    sys_safe |= {'(x2 ='+str(1)+'&& y2 = 1) -> X(!(x='+str(1)+' && y = 1))'}
+    sys_safe |= {'(x1 ='+str(tracklength)+'&& y1 = 2) -> X(!(x='+str(tracklength)+' && y= 2))'}
+    sys_safe |= {'(x1 ='+str(tracklength)+'&& y1 = 1) -> X(!(x='+str(tracklength)+' && y= 1))'}
+
+    tester_safe |= {'(x ='+str(1)+'&& y = 2) -> X(!(x2='+str(1)+' && y2 = 2))'}
+    tester_safe |= {'(x ='+str(1)+'&& y = 1) -> X(!(x2='+str(1)+' && y2 = 1))'}
+    tester_safe |= {'(x ='+str(tracklength)+'&& y = 2) -> X(!(x1 ='+str(tracklength)+' && y1 = 2))'}
+    tester_safe |= {'(x ='+str(tracklength)+' && y = 1) -> X(!(x1 ='+str(tracklength)+' && y1 = 1))'}
+
+    tester_safe |= {'!(y1=1) && !(y2=1)'} # testers stay in bottom lane
+
+    # Tester dynamics
+    for ii in range(2,tracklength-1):
+        tester_safe |= {'(x1='+str(ii)+' && y1=1) -> X((x1='+str(ii+1)+' && y1=1)||(x1='+str(ii)+' && y1=1)|| (x1='+str(ii+1)+' && y1=2))'}
+        tester_safe |= {'(x2='+str(ii)+' && y2=2) -> X((x2='+str(ii+1)+' && y2=2)||(x2='+str(ii)+' && y2=2)|| (x2='+str(ii+1)+' && y2=1))'}
+        tester_safe |= {'(x2='+str(ii)+' && y2=1) -> X((x2='+str(ii+1)+' && y2=1)||(x2='+str(ii)+' && y2=1)|| (x2='+str(ii+1)+' && y2=2))'}
+        tester_safe |= {'(x1='+str(ii)+' && y1=2) -> X((x1='+str(ii+1)+' && y1=2)||(x1='+str(ii)+' && y1=2)|| (x1='+str(ii+1)+' && y1=1))'}
+    # tester_safe |= {'!(x1='+str(tracklength)+' && x2=0)'}
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=2) -> X(x2='+str(tracklength)+' && y2=2)'}
+    tester_safe |= {'(x2='+str(tracklength)+' && y2=1) -> X(x2='+str(tracklength)+' && y2=1)'}
+
+    tester_safe |= {'(x2=1 && y2=2) -> X((x2=1 && y2=2) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+    tester_safe |= {'(x2=1 && y2=1) -> X((x2=1 && y2=1) || (x2=2 && y2=2) || (x2=2 && y2=1))'}
+
+    tester_safe |= {'(x1='+str(tracklength)+' && y1=2) -> X(x1='+str(tracklength)+' && y1=2)'}
+    tester_safe |= {'(x1='+str(tracklength)+' && y1=1) -> X(x1='+str(tracklength)+' && y1=1)'}
+
+    tester_safe |= {'(x1='+str(tracklength-1)+' && y1=1) -> X((x1='+str(tracklength-1)+' && y1=1)|| (x1='+str(tracklength)+' && y1=2) || (x1='+str(tracklength)+' && y1=1)) '}
+    tester_safe |= {'(x1='+str(tracklength-1)+' && y1=2) -> X((x1='+str(tracklength-1)+' && y1=2)|| (x1='+str(tracklength)+' && y1=1) || (x1='+str(tracklength)+' && y1=2)) '}
+    #  tester_safe |= {'(x2=0) -> X(x2=0 || x2=1)'}
+
+    # Terminal conditions: Once car merges, it remains merged.
+    for xi in range(1,tracklength):
+        for x1i in range(1,tracklength):
+            for x2i in range(0,x1i):
+                other_st_i = '(x = '+str(xi)+') && (x1='+str(x1i)+')&&(x2='+str(x2i)+')'
+                sys_safe |= {'((y=2 && y1=2 && y2=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2 && y1=2 && y2=2))'}
+                tester_safe |= {'((y=2 && y1=2 && y2=2) && '+other_st_i+')-> X('+other_st_i+'&& (y=2 && y1=2 && y2=2))'}
 
     # Synthesize specs
     ego_spec = Spec(sys_vars, sys_init, sys_safe, sys_prog)

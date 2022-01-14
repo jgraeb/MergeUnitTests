@@ -20,7 +20,7 @@ sys.path.append('..')
 from highway_merge.merge_receding_horizon_winsets import get_tester_states_in_winsets, specs_car_rh, get_winset_rh
 from sim_merge import play_game
 from highway_merge.test_parameters import TRACKLENGTH
-from highway_merge.check_runtime import run_mcts_convergence_check
+from highway_merge.check_runtime import run_mcts_convergence_check, run_winning_set_filter_synthesis_runtime_check
 
 CHECK_MCTS = True
 CHECK_WS = False
@@ -34,5 +34,5 @@ if __name__ == '__main__':
         run_mcts_convergence_check(rollouts_to_run)
 
     elif CHECK_WS:
-        max_tracklength = 10
-        un_winning_set_filter_synthesis_runtime_check(max_tracklength)
+        max_tracklength = 13
+        run_winning_set_filter_synthesis_runtime_check(max_tracklength)
